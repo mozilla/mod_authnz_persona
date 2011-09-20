@@ -53,8 +53,8 @@ Apache Directives
 once authentication is set up, the "require" directive can be used with one of these values:
 
 * `require valid-user`: a valid BrowserID identity must have been presented
-* `require user &lt;someID&gt;`: a specific identity must be presented
-* `require userfile &lt;path-to-file&gt;`: the BrowserID presented by the user must be in this newline-separated list of identities
+* `require user <someID>`: a specific identity must be presented
+* `require userfile <path-to-file>`: the BrowserID presented by the user must be the newline-separated list of identities found in this file
 
 NOT YET IMPLEMENTED
 -------------------
