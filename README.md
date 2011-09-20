@@ -53,15 +53,15 @@ Apache Directives
 once authentication is set up, the "require" directive can be used with one of these values:
 
 * require valid-user: a valid BrowserID identity must have been presented
-* require user <someID>: a specific identity must be presented
-* require userfile <path-to-file>: the BrowserID presented by the user must be in this newline-separated list of identities
+* require user &lt;someID&gt;: a specific identity must be presented
+* require userfile &lt;path-to-file&gt;: the BrowserID presented by the user must be in this newline-separated list of identities
 
 NOT YET IMPLEMENTED
 -------------------
 
 * AuthBrowserIDSetHTTPHeader: 
 	If set, the name of an HTTP header that will be set on the request after successful authentication.  The header will
-  contain <emailaddress>|<signature>, where signature is the SHA-1 hash of the concatenation of the address and
+  contain &lt;emailaddress&gt;|&lt;signature&gt;, where signature is the SHA-1 hash of the concatenation of the address and
   secret.
 
 * AuthBrowserIDAuthoritative:
