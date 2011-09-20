@@ -464,8 +464,8 @@ static int Auth_browserid_check_cookie(request_rec *r)
 	return DECLINED;
 
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "AuthType are '%s'", ap_auth_type(r));
-    unless(strncmp("BrowserID",ap_auth_type(r),6)==0) {
-	ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth type not specified has 'Cookie'");
+    unless(strncmp("BrowserID",ap_auth_type(r),9)==0) {
+	ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth type must be 'BrowserID'");
         return HTTP_UNAUTHORIZED;
     }
 
@@ -477,7 +477,7 @@ static int Auth_browserid_check_cookie(request_rec *r)
     /* get cookie who are named szAuth_browserid_CookieName */
     unless(szCookieValue = extract_cookie(r, conf->szAuth_browserid_CookieName))
     {
-      ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "cookie not found! not authorized! RemoteIP:%s",szRemoteIP);
+      ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "BrowserID cookie not found; not authorized! RemoteIP:%s",szRemoteIP);
       return HTTP_UNAUTHORIZED;
     }
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "got cookie; value is %s", szCookieValue);
