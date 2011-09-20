@@ -24,31 +24,27 @@ Design Discussion
 
 The nodule works by intercepting requests bound for protected resources, and checking for the presence of a session cookie.  The name of the cookie is defined in the module's configuration.  Note that while the configuration seems to allow you to set a different cookie name for each protected location, the actual cookie is set for the root of the virtual host, so all Location and Directory directives within a host MUST have the same cookie name.
 
-If the cookie is not found, the user agent is served the ErrorDocument for the directory instead of the resource, with an error code of 401 (which prevents browser caching).  The ErrorDocument must implement the BrowserID sign-in flow, and submit the result to the path identified by the `AuthBrowserIDSubmitPath` directive.  (XXX Note that POST parsing isn't implemented yet; you must use GET!)  The form submission must contain a value named `assertion`, containing the assertion, and another named `returnto`, containing the relative path of the originally requested resource.
+If the cookie is not found, the user agent is served the ErrorDocument for the directory instead of the resource, with an error code of 401 (which prevents browser caching).  The ErrorDocument must implement the BrowserID sign-in flow, and submit the result to the path identified by the `AuthBrowserIDSubmitPath` directive.  (Note that POST parsing isn't implemented yet; you must use GET!, #5)  The form submission must contain a value named `assertion`, containing the assertion, and another named `returnto`, containing the relative path of the originally requested resource.
 
-The module will intercept requests bound for the SubmitPath, and will verify the BrowserID assertion by submitting it to the server identified in the `AuthBrowserIDVerificationServerURL` directive. (XXX no way to configure SSL trust chain yet).  Note that the `ServerName` directive of the server containing the protected directory MUST match the hostname the client uses to perform the login, so the Audience field of the BrowserID assertion checks out.  
+The module will intercept requests bound for the SubmitPath, and will verify the BrowserID assertion by submitting it to the server identified in the `AuthBrowserIDVerificationServerURL` directive. (no way to configure SSL trust chain yet #6).  Note that the `ServerName` directive of the server containing the protected directory MUST match the hostname the client uses to perform the login, so the Audience field of the BrowserID assertion checks out.  
 
-If the assertion is verified, the module generates a signed cookie containing the user's email address.  The `AuthBrowserIDSecret` directive MUST be used to provide a unique per-server key, or this step is not secure.  All secret values for a host must be identical, since only one cookie is generated.  (XX Note that there is NO LOGOUT and NO EXPIRY on this cookie yet.  It's not done!)  There is currently no option to encrypt the cookie, so the user's email address is visible in plaintext in the cookie; until encryption is implemented, the only privacy-protecting deployment is to use SSL.  (See issue XX)
+If the assertion is verified, the module generates a signed cookie containing the user's email address.  The `AuthBrowserIDSecret` directive MUST be used to provide a unique per-server key, or this step is not secure.  All secret values for a host must be identical, since only one cookie is generated.  (Note that there is no logout #2 and no expiry #3 on this cookie yet.  It's not done!)  There is currently no option to encrypt the cookie, so the user's email address is visible in plaintext in the cookie; until encryption is implemented (#1), the only privacy-protecting deployment is to use SSL.
 
-Once the session cookie has been established, the "require" directive can be used to specify a single user or a list of users. (XXX could be cool to implement globbing or other ways of identifying a set of valid users, e.g. *@host.com)
+Once the session cookie has been established, the "require" directive can be used to specify a single user or a list of users. (could be cool to implement globbing or other ways of identifying a set of valid users, e.g. *@host.com, #8)
 
-The identity thus verified can be passed on to CGI scripts or downstream webservers; the REMOTE_USER environment variable is automatically set to the verified identity, and an HTTP header containing the identity can be set with the `AuthBrowserIDSetSessionHTTPHeader` directive (XX not implemented yet).
+The identity thus verified can be passed on to CGI scripts or downstream webservers; the REMOTE_USER environment variable is automatically set to the verified identity, and an HTTP header containing the identity can be set with the `AuthBrowserIDSetSessionHTTPHeader` directive (not implemented yet, #7).
 
 Apache Directives 
 =================
 
 * AuthBrowserIDCookieName:
 	Name of cookie to set
-
 * AuthBrowserIDSubmitPath:
 	Path to which login forms will be submitted.  Form must contain a fields named 'assertion' and 'returnto'.
-
 * AuthBrowserIDVerificationServerURL:
 	URL of the BrowserID verification server.
-
 * AuthBrowserIDSecret:
 	Server secret for authentication cookie.
-
 * AuthBrowserIDVerifyLocally:
 	Set to 'yes' to verify assertions locally; ignored if VerificationServerURL is set
 
