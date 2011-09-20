@@ -1,6 +1,7 @@
 mod_browserid is a module for Apache 2.0 or later that implements Apache authentication for the BrowserID protocol.
 
-== Building and Installing ==
+Building and Installing
+=======================
 
 git clone git@github.com:mozilla/mod_browserid.git
 cd mod_browserid
@@ -9,13 +10,15 @@ sudo make install
 
 (this assumes apxs is behaving properly on your system)
 
-== Dependencies ==
+Dependencies
+============
 
 * apache 2.0 or later
 * libcurl 7.10.8 or later
 * yajl 2.0 or later
 
-== Design Discussion ==
+Design Discussion
+=================
 
 The nodule works by intercepting requests bound for protected resources, and checking for the presence of a session cookie.  The name of the cookie is defined in the module's configuration.  Note that while the configuration seems to allow you to set a different cookie name for each protected location, the actual cookie is set for the root of the virtual host, so all Location and Directory directives within a host MUST have the same cookie name.
 
@@ -29,7 +32,8 @@ Once the session cookie has been established, the "require" directive can be use
 
 The identity thus verified can be passed on to CGI scripts or downstream webservers; the REMOTE_USER environment variable is automatically set to the verified identity, and an HTTP header containing the identity can be set with the `AuthBrowserIDSetSessionHTTPHeader` directive (XX not implemented yet).
 
-== Apache Directives ==
+Apache Directives 
+=================
 
 * AuthBrowserIDCookieName:
 	Name of cookie to set
@@ -52,7 +56,8 @@ once authentication is set up, the "require" directive can be used with one of t
 * require user <someID>: a specific identity must be presented
 * require userfile <path-to-file>: the BrowserID presented by the user must be in this newline-separated list of identities
 
-* NOT YET IMPLEMENTED: *
+NOT YET IMPLEMENTED
+-------------------
 
 * AuthBrowserIDSetSessionHTTPHeader: 
 	Set to 'yes' to set session information to http header of the authenticated users, no by default
@@ -64,9 +69,11 @@ once authentication is set up, the "require" directive can be used with one of t
 	Set to 'no' to fix http header and auth_type for simulating auth basic for scripting language like php auth framework work, set to 'yes' by default
 
 
-== Sample Configuration ==
+Sample Configuration
+====================
 
 httpd.conf:
+
 ```
   LoadModule mod_authBrowserIDmodule modules/mod_auth_browserid.so
 
