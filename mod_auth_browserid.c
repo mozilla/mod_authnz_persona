@@ -257,6 +257,7 @@ typedef struct {
   int 	authBasicFix;
   char  *forwardedRequestHeader;
   char *submitPath;
+  char *logoutPath;
   char *verificationServerURL;
   int   verifyLocally;
   char *serverSecret;
@@ -761,6 +762,28 @@ static int processAssertionFormSubmit(request_rec *r, BrowserIDConfigRec *conf)
   return DECLINED;
 }
 
+static int processLogout(request_rec *r, BrowserIDConfigRec *conf)
+{
+  apr_table_set(r->err_headers_out, "Set-Cookie", 
+    apr_psprintf(r->pool, "%s=; Path=/; Expires=Thu, 01-Jan-1970 00:00:01 GMT", 
+      conf->cookieName));
+
+  if (r->args) {
+    if ( strlen(r->args) > 16384 ) {
+      return HTTP_REQUEST_URI_TOO_LARGE ;
+    }
+
+    apr_table_t *vars = parseArgs(r, r->args);
+    const char *returnto = apr_table_get(vars, "returnto") ;
+    if (returnto) {
+      apr_table_set(r->headers_out,"Location", returnto);
+      return OK;
+    }
+  }
+  apr_table_set(r->headers_out,"Location", "/");
+  return OK;
+}
+
 /*
  * We grab form submissions in the fixup step.  In this step, if the
  * user has submitted an assertion, we need to pull it out, verify it,
@@ -779,6 +802,10 @@ static int Auth_browserid_fixups(request_rec *r)
     if (conf->submitPath && !strcmp(r->uri, conf->submitPath)) {
       return processAssertionFormSubmit(r, conf);
     }
+    else if (conf->logoutPath && !strcmp(r->uri, conf->logoutPath)) {
+      return processLogout(r, conf);
+    }
+    
     /* otherwise we don't care */
     return DECLINED;
 }
@@ -804,6 +831,7 @@ static void *create_browserid_config(apr_pool_t *p, char *d)
     conf->cookieName = apr_pstrdup(p,"BrowserID");
     conf->submitPath = "/mod_browserid_submit";
     conf->serverSecret = "BrowserIDSecret";
+    conf->logoutPath = NULL;
     conf->authoritative = 0;  /* not by default */
     conf->authBasicFix = 0;  /* do not fix header for php auth by default */
     conf->forwardedRequestHeader = NULL; /* pass the authenticated user, signed, as an HTTP header */
@@ -827,11 +855,15 @@ static const command_rec Auth_browserid_cmds[] =
 
     AP_INIT_FLAG ("AuthBrowserIDSimulateAuthBasic", ap_set_flag_slot,
      (void *)APR_OFFSETOF(BrowserIDConfigRec, authBasicFix),
-     OR_AUTHCFG, "Set to 'yes' to disable creation of a synthetic Basic Authorization header containing the username"),
+     OR_AUTHCFG, "Set to 'yes' to enable creation of a synthetic Basic Authorization header containing the username"),
 
     AP_INIT_TAKE1 ("AuthBrowserIDSubmitPath", ap_set_string_slot,
      (void *)APR_OFFSETOF(BrowserIDConfigRec, submitPath),
      OR_AUTHCFG, "Path to which login forms will be submitted.  Form must contain a field named 'assertion'"),
+
+    AP_INIT_TAKE1 ("AuthBrowserIDLogoutPath", ap_set_string_slot,
+     (void *)APR_OFFSETOF(BrowserIDConfigRec, logoutPath),
+     OR_AUTHCFG, "Path to which logout requests will be submitted.  An optional 'returnto' parameter will be used for a redirection, if provided."),
 
     AP_INIT_TAKE1 ("AuthBrowserIDVerificationServerURL", ap_set_string_slot,
      (void *)APR_OFFSETOF(BrowserIDConfigRec, verificationServerURL),
