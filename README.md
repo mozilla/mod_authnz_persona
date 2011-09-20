@@ -28,7 +28,7 @@ If the cookie is not found, the user agent is served the ErrorDocument for the d
 
 The module will intercept requests bound for the SubmitPath, and will verify the BrowserID assertion by submitting it to the server identified in the `AuthBrowserIDVerificationServerURL` directive. (no way to configure SSL trust chain yet #6).  Note that the `ServerName` directive of the server containing the protected directory MUST match the hostname the client uses to perform the login, so the Audience field of the BrowserID assertion checks out.  
 
-If the assertion is verified, the module generates a signed cookie containing the user's email address.  The `AuthBrowserIDSecret` directive MUST be used to provide a unique per-server key, or this step is not secure.  All secret values for a host must be identical, since only one cookie is generated.  (Note that there is no logout #2 and no expiry #3 on this cookie yet.  It's not done!)  There is currently no option to encrypt the cookie, so the user's email address is visible in plaintext in the cookie; until encryption is implemented (#1), the only privacy-protecting deployment is to use SSL.
+If the assertion is verified, the module generates a signed cookie containing the user's email address.  The `AuthBrowserIDSecret` directive MUST be used to provide a unique per-server key, or this step is not secure.  All secret values for a host must be identical, since only one cookie is generated.  (Note that there is no expiry #3 on this cookie yet.)  There is currently no option to encrypt the cookie, so the user's email address is visible in plaintext in the cookie; until encryption is implemented (#1), the only privacy-protecting deployment is to use SSL.
 
 Once the session cookie has been established, the "require" directive can be used to specify a single user or a list of users. (could be cool to implement globbing or other ways of identifying a set of valid users, e.g. *@host.com, #8)
 
@@ -49,8 +49,10 @@ Apache Directives
 	Set to 'yes' to verify assertions locally; ignored if `AuthBrowserIDVerificationServerURL` is set
 * `AuthBrowserIDSimulateAuthBasic`:
   Set to 'yes' to attach a synthetic Basic Authorization header to the request containing the username and a placeholder password
-
-once authentication is set up, the "require" directive can be used with one of these values:
+* `AuthBrowserIDLogoutPath`:
+  Path to which logout requests will be submitted.  An optional 'returnto' parameter in the request will be used for a redirection.
+  
+Once authentication is set up, the "require" directive can be used with one of these values:
 
 * `require valid-user`: a valid BrowserID identity must have been presented
 * `require user <someID>`: a specific identity must be presented
