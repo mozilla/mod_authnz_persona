@@ -666,10 +666,105 @@ static void createSessionCookie(request_rec *r, BrowserIDConfigRec *conf, char *
       conf->cookieName, identity, digest64));
 }
 
+/* Called from the fixup_handler when we receive a form submission.
+ *
+ * XXX handle POST submissions correctly - this will take some work,
+ *     as we have to loop to handle chunked submissions
+ */
+static int processAssertionFormSubmit(request_rec *r, BrowserIDConfigRec *conf)
+{
+  ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "Submission to BrowserID form handler");
+
+  /* parse the form and extract the assertion */
+  if (r->method_number == M_GET) {
+    if ( r->args ) {
+      if ( strlen(r->args) > 16384 ) {
+        return HTTP_REQUEST_URI_TOO_LARGE ;
+      }
+
+      apr_table_t *vars = parseArgs(r, r->args);
+      const char *assertionParsed = apr_table_get(vars, "assertion") ;
+      const char *returnto = apr_table_get(vars, "returnto") ;
+      ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG 
+        "In post_read_request; parsed assertion as %s", assertionParsed);
+      ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG 
+        "In post_read_request; parsed returnto as %s", returnto);
+
+      /* verify the assertion... */
+      yajl_val parsed_result = NULL;
+      if (conf->verificationServerURL) {
+        char *assertionResult = verifyAssertionRemote(r, conf, (char*)assertionParsed);
+        if (assertionResult) {
+          char errorBuffer[256];
+          parsed_result = yajl_tree_parse(assertionResult, errorBuffer, 255);
+          if (!parsed_result) {
+            ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG "Error parsing BrowserID verification response: malformed payload: %s", errorBuffer);
+            return DECLINED;
+          }
+          ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG 
+            "In post_read_request; parsed JSON from verification server: %s", assertionResult);
+        } else {
+          ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG
+            "Unable to verify assertion; communication error with verification server");
+          return DECLINED;
+        }
+      } else {
+        if (conf->verifyLocally) {
+          char *hdr=NULL, *payload=NULL, *sig=NULL;
+          char *assertion = apr_pstrdup(r->pool, assertionParsed);
+          hdr= apr_strtok(assertion, ".", &payload);
+          if (hdr) {
+            payload= apr_strtok(payload, ".", &sig);
+            if (sig) {
+              int len = apr_base64_decode_len(payload);
+              char *payloadDecode = apr_pcalloc(r->pool, len+1);
+              apr_base64_decode(payloadDecode, payload);
+              
+              char errorBuffer[256];
+              parsed_result = yajl_tree_parse(payloadDecode, errorBuffer, 255);
+              if (!parsed_result) {
+                ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG "Error parsing BrowserID login: malformed payload: %s", errorBuffer);
+                return DECLINED;
+              }
+              /** XXX more local validation required!!! Check timestamp, audience **/
+            }
+          }
+        } else {
+          ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG "Cannot verify BrowserID login: no verification server configured!");
+          return DECLINED;
+        }
+      }
+      if (parsed_result) {
+        char *parsePath[2];
+        parsePath[0] = "email";
+        parsePath[1] = NULL;
+        yajl_val foundEmail = yajl_tree_get(parsed_result, (const char**)parsePath, yajl_t_any);
+
+        /** XXX if we don't have an email, something went wrong.  Should pull the error code properly!  This will
+        *  probably require refactoring this function since the local path is different.  ***/
+        if (!foundEmail || foundEmail->type != yajl_t_string) {
+          ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG "Error parsing BrowserID login: no email in payload");
+          return DECLINED;
+        }
+        ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "In post_read_request; got email %s", foundEmail->u.string);
+        createSessionCookie(r, conf, foundEmail->u.string);
+
+        /* redirect to the requested resource */
+        apr_table_set(r->headers_out,"Location", returnto);
+        
+        return HTTP_TEMPORARY_REDIRECT;
+      } 
+    }
+  } else {
+   ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG "In post_read_request; this is a POST - skipping it for now");
+  }  
+  return DECLINED;
+}
+
 /*
- * This routine is called after the request has been read but before any other
- * phases have been processed.  This allows us to make decisions based upon
- * the input header fields.
+ * We grab form submissions in the fixup step.  In this step, if the
+ * user has submitted an assertion, we need to pull it out, verify it,
+ * and create a new session cookie for them.
  *
  * The return value is OK, DECLINED, or HTTP_mumble.  If we return OK, no
  * further modules are called for this phase.
@@ -682,89 +777,7 @@ static int Auth_browserid_fixups(request_rec *r)
     conf = ap_get_module_config(r->per_dir_config, &mod_auth_browserid_module);
 
     if (conf->submitPath && !strcmp(r->uri, conf->submitPath)) {
-      /* this is a login submission */
-      ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "Submission to BrowserID form handler");
-
-      /* parse the form and extract the assertion */
-      if (r->method_number == M_GET) {
-        if ( r->args ) {
-          if ( strlen(r->args) > 16384 ) {
-            return HTTP_REQUEST_URI_TOO_LARGE ;
-          }
-
-          apr_table_t *vars = parseArgs(r, r->args);
-          const char *assertionParsed = apr_table_get(vars, "assertion") ;
-          const char *returnto = apr_table_get(vars, "returnto") ;
-          ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG 
-            "In post_read_request; parsed assertion as %s", assertionParsed);
-          ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG 
-            "In post_read_request; parsed returnto as %s", returnto);
-
-          /* verify the assertion... */
-          yajl_val parsed_result = NULL;
-          if (conf->verificationServerURL) {
-            char *assertionResult = verifyAssertionRemote(r, conf, (char*)assertionParsed);
-            if (assertionResult) {
-              char errorBuffer[256];
-              parsed_result = yajl_tree_parse(assertionResult, errorBuffer, 255);
-              if (!parsed_result) {
-                ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG "Error parsing BrowserID verification response: malformed payload: %s", errorBuffer);
-                return DECLINED;
-              }
-              ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG 
-                "In post_read_request; parsed JSON from verification server: %s", assertionResult);
-            } else {
-              ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG
-                "Unable to verify assertion; communication error with verification server");
-              return DECLINED;
-            }
-          } else {
-            if (conf->verifyLocally) {
-              char *hdr=NULL, *payload=NULL, *sig=NULL;
-              char *assertion = apr_pstrdup(r->pool, assertionParsed);
-              hdr= apr_strtok(assertion, ".", &payload);
-              if (hdr) {
-                payload= apr_strtok(payload, ".", &sig);
-                if (sig) {
-                  int len = apr_base64_decode_len(payload);
-                  char *payloadDecode = apr_pcalloc(r->pool, len+1);
-                  apr_base64_decode(payloadDecode, payload);
-                  
-                  char errorBuffer[256];
-                  parsed_result = yajl_tree_parse(payloadDecode, errorBuffer, 255);
-                  if (!parsed_result) {
-                    ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG "Error parsing BrowserID login: malformed payload: %s", errorBuffer);
-                    return DECLINED;
-                  }
-                  /** XXX more local validation required!!! Check timestamp, audience **/
-                }
-              }
-            } else {
-              ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG "Cannot verify BrowserID login: no verification server configured!");
-              return DECLINED;
-            }
-          }
-          if (parsed_result) {
-            char *parsePath[2];
-            parsePath[0] = "email";
-            parsePath[1] = NULL;
-            yajl_val foundEmail = yajl_tree_get(parsed_result, (const char**)parsePath, yajl_t_any);
-            if (!foundEmail || foundEmail->type != yajl_t_string) {
-              ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG "Error parsing BrowserID login: no email in payload");
-              return DECLINED;
-            }
-            ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "In post_read_request; got email %s", foundEmail->u.string);
-            createSessionCookie(r, conf, foundEmail->u.string);
-
-            /* redirect to the requested resource */
-            apr_table_set(r->headers_out,"Location", returnto);
-            
-            return HTTP_TEMPORARY_REDIRECT;
-          } 
-        }
-      } else {
-	     ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG "In post_read_request; this is a POST - skipping it for now");
-      }
+      return processAssertionFormSubmit(r, conf);
     }
     /* otherwise we don't care */
     return DECLINED;
