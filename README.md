@@ -31,42 +31,43 @@ The identity thus verified can be passed on to CGI scripts or downstream webserv
 
 == Apache Directives ==
 
-AuthBrowserIDCookieName:
+* AuthBrowserIDCookieName:
 	Name of cookie to set
 
-AuthBrowserIDSubmitPath:
+* AuthBrowserIDSubmitPath:
 	Path to which login forms will be submitted.  Form must contain a fields named 'assertion' and 'returnto'.
 
-AuthBrowserIDVerificationServerURL:
+* AuthBrowserIDVerificationServerURL:
 	URL of the BrowserID verification server.
 
-AuthBrowserIDSecret:
+* AuthBrowserIDSecret:
 	Server secret for authentication cookie.
 
-AuthBrowserIDVerifyLocally:
+* AuthBrowserIDVerifyLocally:
 	Set to 'yes' to verify assertions locally; ignored if VerificationServerURL is set
 
-omce authentication is set up, the "require" directive can be used with one of these values:
+once authentication is set up, the "require" directive can be used with one of these values:
 
-require valid-user: a valid BrowserID identity must have been presented
-require user <someID>: a specific identity must be presented
-require userfile <path-to-file>: the BrowserID presented by the user must be in this newline-separated list of identities
+* require valid-user: a valid BrowserID identity must have been presented
+* require user <someID>: a specific identity must be presented
+* require userfile <path-to-file>: the BrowserID presented by the user must be in this newline-separated list of identities
 
 * NOT YET IMPLEMENTED: *
-AuthBrowserIDSetSessionHTTPHeader: 
+
+* AuthBrowserIDSetSessionHTTPHeader: 
 	Set to 'yes' to set session information to http header of the authenticated users, no by default
 
-AuthBrowserIDAuthoritative:
+* AuthBrowserIDAuthoritative:
 	Set to 'yes' to allow access control to be passed along to lower modules, set to 'no' by default
 
-AuthBrowserIDSimulateAuthBasic:
+* AuthBrowserIDSimulateAuthBasic:
 	Set to 'no' to fix http header and auth_type for simulating auth basic for scripting language like php auth framework work, set to 'yes' by default
 
 
 == Sample Configuration ==
 
 httpd.conf:
-
+```
   LoadModule mod_authBrowserIDmodule modules/mod_auth_browserid.so
 
   <Directory /usr/local/apache2/htdocs/id_login >
@@ -89,9 +90,11 @@ httpd.conf:
 
    require userfile /usr/local/apache2/htdocs/id_demo_users
   </Directory>
+```
 
 /id_login/browserid_login.php:
 
+```
   <?php?><html>
   <head>
   <script src="https://browserid.org/include.js" type="text/javascript"></script>
@@ -114,8 +117,10 @@ httpd.conf:
         });
   }
   </script></body></html>
-
+```
 /usr/local/apache2/htdocs/id_demo_users:
 
+```
   user@site.com
   otheruser@site.com
+```
