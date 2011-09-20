@@ -37,34 +37,34 @@ The identity thus verified can be passed on to CGI scripts or downstream webserv
 Apache Directives 
 =================
 
-* AuthBrowserIDCookieName:
+* `AuthBrowserIDCookieName`:
 	Name of cookie to set
-* AuthBrowserIDSubmitPath:
-	Path to which login forms will be submitted.  Form must contain a fields named 'assertion' and 'returnto'.
-* AuthBrowserIDVerificationServerURL:
+* `AuthBrowserIDSubmitPath`:
+	Path to which login forms will be submitted.  Form must contain fields named 'assertion' and 'returnto'.
+* `AuthBrowserIDVerificationServerURL`:
 	URL of the BrowserID verification server.
-* AuthBrowserIDSecret:
+* `AuthBrowserIDSecret`:
 	Server secret for authentication cookie.
-* AuthBrowserIDVerifyLocally:
-	Set to 'yes' to verify assertions locally; ignored if VerificationServerURL is set
-* AuthBrowserIDSimulateAuthBasic:
+* `AuthBrowserIDVerifyLocally`:
+	Set to 'yes' to verify assertions locally; ignored if `AuthBrowserIDVerificationServerURL` is set
+* `AuthBrowserIDSimulateAuthBasic`:
   Set to 'yes' to attach a synthetic Basic Authorization header to the request containing the username and a placeholder password
 
 once authentication is set up, the "require" directive can be used with one of these values:
 
-* require valid-user: a valid BrowserID identity must have been presented
-* require user &lt;someID&gt;: a specific identity must be presented
-* require userfile &lt;path-to-file&gt;: the BrowserID presented by the user must be in this newline-separated list of identities
+* `require valid-user`: a valid BrowserID identity must have been presented
+* `require user &lt;someID&gt;`: a specific identity must be presented
+* `require userfile &lt;path-to-file&gt;`: the BrowserID presented by the user must be in this newline-separated list of identities
 
 NOT YET IMPLEMENTED
 -------------------
 
-* AuthBrowserIDSetHTTPHeader: 
+* `AuthBrowserIDSetHTTPHeader`: 
 	If set, the name of an HTTP header that will be set on the request after successful authentication.  The header will
   contain &lt;emailaddress&gt;|&lt;signature&gt;, where signature is the SHA-1 hash of the concatenation of the address and
   secret.
 
-* AuthBrowserIDAuthoritative:
+* `AuthBrowserIDAuthoritative`:
 	Set to 'yes' to allow access control to be passed along to lower modules, set to 'no' by default
 
 
