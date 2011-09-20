@@ -1,8 +1,10 @@
 CC=gcc
-MY_APXS=/usr/local/apache2/bin/apxs
+MY_APXS=/usr/sbin/apxs
 
 MY_LDFLAGS=-lcurl -lyajl
-MY_CFLAGS=
+
+# Note that gcc flags are passed through apxs, so preface with -Wc
+MY_CFLAGS=-Wc,-I. -Wc,-Wall
 
 .SUFFIXES: .c .o .la
 .c.la:

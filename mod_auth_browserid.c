@@ -252,23 +252,17 @@ module AP_MODULE_DECLARE_DATA mod_auth_browserid_module;
 
 /* config structure */
 typedef struct {
+  char *cookieName;
+  int 	authoritative;
+  int 	authBasicFix;
+  char  *forwardedRequestHeader;
+  char *submitPath;
+  char *verificationServerURL;
+  int   verifyLocally;
+  char *serverSecret;
+} BrowserIDConfigRec;
 
-  int 	nAuth_browserid_SetSessionHTTPHeader;
-  int 	nAuth_browserid_SetSessionHTTPHeaderEncode;
-
-  char *	szAuth_browserid_CookieName;
-  int 	nAuth_browserid_Authoritative;
-
-  int 	nAuth_browserid_authbasicfix;
-
-  char *        szAuth_browserid_SubmitPath;
-  char *        szAuth_browserid_VerificationServerURL;
-  int        szAuth_browserid_VerifyLocally;
-
-  char *        szAuth_browserid_Secret;
-} strAuth_browserid_config_rec;
-
-/* Look through 'Cookie' header for indicated cookie; extract it
+/* Look through the 'Cookie' headers for the indicated cookie; extract it
  * and URL-unescape it. Return the cookie on success, NULL on failure. */
 static char * extract_cookie(request_rec *r, const char *szCookie_name) 
 {
@@ -302,10 +296,12 @@ static char * extract_cookie(request_rec *r, const char *szCookie_name)
 
   ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "finished cookie scan, returning %s", szCookie);
 
-
   return szCookie;
 }
 
+/** Given a filename and username, open the file (using normal Apache
+ * configuration directory search rules) and search for the given username
+ * in it (as a newline-seaparated list) */
 static int user_in_file(request_rec *r, char *username, char *filename)
 {
   apr_status_t status;
@@ -320,7 +316,6 @@ static int user_in_file(request_rec *r, char *username, char *filename)
 
   int found = 0;
   while (!(ap_cfg_getline(l, MAX_STRING_LEN, f))) {
-    const char *rpw, *w;
     
     /* Skip # or blank lines. */
     if ((l[0] == '#') || (!l[0])) {
@@ -343,46 +338,58 @@ static int user_in_file(request_rec *r, char *username, char *filename)
    has been authenticated. */
 static void fix_headers_in(request_rec *r,char*szPassword)
 {
+  char *szUser=NULL;
+ /* Set an Authorization header in the input request table for php and
+  other applications that use it to obtain the username (mainly to fix
+  apache logging of php scripts). We only set this if there is no header
+  already present. */
 
-   char *szUser=NULL;
+ if (apr_table_get(r->headers_in,"Authorization")==NULL) 
+ {
+    ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "fixing apache Authorization header for this request using user: %s",r->user);
 
-   /* Set an Authorization header in the input request table for php and
-      other applications that use it to obtain the username (mainly to fix
-      apache logging of php scripts). We only set this if there is no header
-      already present. */
+    /* concat username and ':' */
+    if (szPassword!=NULL) szUser=(char*)apr_pstrcat(r->pool,r->user,":",szPassword,NULL);
+    else szUser=(char*)apr_pstrcat(r->pool,r->user,":",NULL);
 
-   if (apr_table_get(r->headers_in,"Authorization")==NULL) 
-   {
+    /* alloc memory for the estimated encode size of the username */
+    char *szB64_enc_user=(char*)apr_palloc(r->pool,apr_base64_encode_len(strlen(szUser))+1);
+    unless (szB64_enc_user) {
+      ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "memory alloc failed!");
+      return;
+    }
 
-     ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "fixing apache Authorization header for this request using user:%s",r->user);
+    /* encode username in base64 format */
+    apr_base64_encode(szB64_enc_user,szUser,strlen(szUser));
 
-     /* concat username and ':' */
-     if (szPassword!=NULL) szUser=(char*)apr_pstrcat(r->pool,r->user,":",szPassword,NULL);
-     else szUser=(char*)apr_pstrcat(r->pool,r->user,":",NULL);
+    /* set authorization header */
+    apr_table_set(r->headers_in,"Authorization", (char*)apr_pstrcat(r->pool,"Basic ",szB64_enc_user,NULL));
 
-     /* alloc memory for the estimated encode size of the username */
-     char *szB64_enc_user=(char*)apr_palloc(r->pool,apr_base64_encode_len(strlen(szUser))+1);
-     unless (szB64_enc_user) {
-       ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "memory alloc failed!");
-       return;
-     }
+    /* force auth type to basic */
+    r->ap_auth_type=apr_pstrdup(r->pool,"Basic");
+  }
 
-     /* encode username in base64 format */
-     apr_base64_encode(szB64_enc_user,szUser,strlen(szUser));
+  return;
+}
 
-
-     /* set authorization header */
-     apr_table_set(r->headers_in,"Authorization", (char*)apr_pstrcat(r->pool,"Basic ",szB64_enc_user,NULL));
-
-     /* force auth type to basic */
-     r->ap_auth_type=apr_pstrdup(r->pool,"Basic");
-   }
- 
-   return;
+/** Generates a signature with the given inputs, returning a Base64-encoded
+ * signature value. */
+static char *generateSignature(request_rec *r, BrowserIDConfigRec *conf, char *userAddress)
+{
+    SHA1_CTX context;
+    SHA1Init(&context);
+    SHA1Update(&context, (unsigned char*)userAddress, strlen(userAddress));
+    SHA1Update(&context, (unsigned char*)conf->serverSecret, strlen(conf->serverSecret));
+    unsigned char digest[20];
+    SHA1Final(digest, &context);
+    
+    char *digest64 = apr_palloc(r->pool, apr_base64_encode_len(20));
+    apr_base64_encode(digest64, (char*)digest, 20);
+    return digest64;
 }
 
 /* Check the cookie and make sure it is valid */
-static int Auth_browserID_validateCookie(request_rec *r, strAuth_browserid_config_rec *conf, char *szCookieValue)
+static int validateCookie(request_rec *r, BrowserIDConfigRec *conf, char *szCookieValue)
 {
     /* split at | */
     char *sig = NULL;
@@ -392,17 +399,7 @@ static int Auth_browserID_validateCookie(request_rec *r, strAuth_browserid_confi
       return 1;
     }
 
-    /* Validate the signature */
-    SHA1_CTX context;
-    SHA1Init(&context);
-    SHA1Update(&context, (unsigned char*)addr, strlen(addr));
-    SHA1Update(&context, (unsigned char*)conf->szAuth_browserid_Secret, strlen(conf->szAuth_browserid_Secret));
-    unsigned char digest[20];
-    SHA1Final(digest, &context);
-    
-    char *digest64 = apr_palloc(r->pool, apr_base64_encode_len(20));
-    apr_base64_encode(digest64, (char*)digest, 20);
-
+    char *digest64 = generateSignature(r, conf, addr);
     ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "Got cookie: email is %s; expected digest is %s; got digest %s",
 		  addr, digest64, sig);
 
@@ -418,29 +415,6 @@ static int Auth_browserID_validateCookie(request_rec *r, strAuth_browserid_confi
     return 0;
 }
 
-/* check if szGroup are in szGroups. */
-static int get_Auth_browserid_grp(request_rec *r, char *szGroup, char *szGroups)
-{
-    char *szGrp_End;
-    char *szGrp_Pos;
-    char *szMyGroups;
-
-    /* make a copy */
-    szMyGroups=apr_pstrdup(r->pool,szGroups);
-    /* search group in groups */
-    unless(szGrp_Pos=strstr(szMyGroups,szGroup)) {
-      return DECLINED;
-    }
-    /* search the next ':' and set '\0' in place of ':' */
-    if ((szGrp_End=strchr(szGrp_Pos,':'))) szGrp_End[0]='\0';
-
-    /* compar szGroup with szGrp_Pos if ok return ok */
-    if(strcmp(szGroup,szGrp_Pos))
-       return DECLINED;
-    ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "group found=%s",szGrp_Pos);
-    return OK;
-}
-
 /**************************************************
  * Authentication phase
  *
@@ -448,10 +422,8 @@ static int get_Auth_browserid_grp(request_rec *r, char *szGroup, char *szGroups)
  **************************************************/
 static int Auth_browserid_check_cookie(request_rec *r)
 {
-    strAuth_browserid_config_rec *conf=NULL;
+    BrowserIDConfigRec *conf=NULL;
     char *szCookieValue=NULL;
-    apr_table_t *pAuthSession=NULL;
-    apr_status_t tRetStatus;
     char *szRemoteIP=NULL;
 
     ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG  "ap_hook_check_user_id in - Auth_browserid_check_cookie");
@@ -459,7 +431,7 @@ static int Auth_browserid_check_cookie(request_rec *r)
     /* get apache config */
     conf = ap_get_module_config(r->per_dir_config, &mod_auth_browserid_module);
 
-    unless(conf->nAuth_browserid_Authoritative)
+    unless(conf->authoritative)
 	   return DECLINED;
 
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "AuthType are '%s'", ap_auth_type(r));
@@ -468,13 +440,13 @@ static int Auth_browserid_check_cookie(request_rec *r)
       return HTTP_UNAUTHORIZED;
     }
 
-    unless(conf->szAuth_browserid_CookieName) {
+    unless(conf->cookieName) {
       ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "No Auth_browserid_CookieName specified");
       return HTTP_UNAUTHORIZED;
     }
 
-    /* get cookie who are named szAuth_browserid_CookieName */
-    unless(szCookieValue = extract_cookie(r, conf->szAuth_browserid_CookieName))
+    /* get cookie who are named cookieName */
+    unless(szCookieValue = extract_cookie(r, conf->cookieName))
     {
       ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "BrowserID cookie not found; not authorized! RemoteIP:%s",szRemoteIP);
       return HTTP_UNAUTHORIZED;
@@ -482,8 +454,8 @@ static int Auth_browserid_check_cookie(request_rec *r)
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "got cookie; value is %s", szCookieValue);
 
     /* Check cookie validity */
-    if (Auth_browserID_validateCookie(r, conf, szCookieValue)) {
-        ap_log_rerror(APLOG_MARK, APLOG_WARNING|APLOG_NOERRNO, 0, r, ERRTAG "Invalid BrowserID cookie: %s", szCookieValue, r->filename);
+    if (validateCookie(r, conf, szCookieValue)) {
+        ap_log_rerror(APLOG_MARK, APLOG_WARNING|APLOG_NOERRNO, 0, r, ERRTAG "Invalid BrowserID cookie: %s", szCookieValue);
         return HTTP_UNAUTHORIZED;
     }
 
@@ -494,7 +466,7 @@ static int Auth_browserid_check_cookie(request_rec *r)
     ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "BrowserID authentication ok");
 
     /* fix http header for php */
-    /*    if (conf->nAuth_browserid_authbasicfix) fix_headers_in(r,(char*)apr_table_get(pAuthSession,"Password"));*/
+    if (conf->authBasicFix) fix_headers_in(r,"browserid");
 
     /* if all is ok return auth ok */
     return OK;
@@ -508,87 +480,79 @@ static int Auth_browserid_check_cookie(request_rec *r)
  *
  * if it is valid, apply per-resource authorization rules.
  **************************************************/
-
 static int Auth_browserid_check_auth(request_rec *r)
 {
-    strAuth_browserid_config_rec *conf=NULL;
-    char *szMyUser=r->user;
-    char *szUser;
-    int m = r->method_number;
+  BrowserIDConfigRec *conf=NULL;
+  char *szUser;
+  const apr_array_header_t *reqs_arr=NULL;
+  require_line *reqs=NULL;
+  register int x;
+  const char *szRequireLine;
+  char *szFileName;
+  char *szRequire_cmd;
+  
+  /* get apache config */
+  conf = ap_get_module_config(r->per_dir_config, &mod_auth_browserid_module);
 
-    const apr_array_header_t *reqs_arr=NULL;
-    require_line *reqs=NULL;
+  /* check if this module is authoritative */
+  unless(conf->authoritative)
+    return DECLINED;
 
-    register int x;
-    const char *szRequireLine;
-    const char *szFileName;
-    char *szRequire_cmd;
-    apr_status_t tRetStatus;
+  /* get require line */
+  reqs_arr = ap_requires(r);
+  reqs = reqs_arr ? (require_line *) reqs_arr->elts : NULL;
 
-    ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG  "ap_hook_auth_checker in");
+  /* decline if no require line found */
+  if (!reqs_arr) return DECLINED;
 
-    /* get apache config */
-    conf = ap_get_module_config(r->per_dir_config, &mod_auth_browserid_module);
+  /* walk through the array to check each require command */
+  for (x = 0; x < reqs_arr->nelts; x++) {
 
-    /* check if this module is authoritative */
-    unless(conf->nAuth_browserid_Authoritative)
-      return DECLINED;
+    if (!(reqs[x].method_mask & (AP_METHOD_BIT << r->method_number)))
+      continue;
 
     /* get require line */
-    reqs_arr = ap_requires(r);
-    reqs = reqs_arr ? (require_line *) reqs_arr->elts : NULL;
+    szRequireLine = reqs[x].requirement;
+    ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "Require Line is '%s'", szRequireLine);
 
-    /* decline if no require line found */
-    if (!reqs_arr) return DECLINED;
+    /* get the first word in require line */
+    szRequire_cmd = ap_getword_white(r->pool, &szRequireLine);
+    ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "Require Cmd is '%s'", szRequire_cmd);
 
-    /* walk through the array to check each require command */
-    for (x = 0; x < reqs_arr->nelts; x++) {
-
-      if (!(reqs[x].method_mask & (AP_METHOD_BIT << m)))
-        continue;
-
-      /* get require line */
-      szRequireLine = reqs[x].requirement;
-      ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "Require Line is '%s'", szRequireLine);
-
-      /* get the first word in require line */
-      szRequire_cmd = ap_getword_white(r->pool, &szRequireLine);
-      ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "Require Cmd is '%s'", szRequire_cmd);
-
-      /* if require cmd are valid-user, they are already authenticated than allow and return OK */
-      if (!strcmp("valid-user",szRequire_cmd)) {
+    /* if require cmd are valid-user, they are already authenticated than allow and return OK */
+    if (!strcmp("valid-user",szRequire_cmd)) {
       ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "Require Cmd valid-user");
       return OK;
     } 
     /* check the required user */ 
     else if (!strcmp("user",szRequire_cmd)) {
       szUser = ap_getword_conf(r->pool, &szRequireLine);
-      if (strcmp(szMyUser, szUser)) {
-        ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r ,ERRTAG  "user '%s' is not the required user '%s'",szMyUser,szUser);
+      if (strcmp(r->user, szUser)) {
+        ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r ,ERRTAG  "user '%s' is not the required user '%s'",r->user, szUser);
         return HTTP_FORBIDDEN;
       }
-      ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r ,ERRTAG  "user '%s' is authorized",szMyUser);
+      ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r ,ERRTAG  "user '%s' is authorized",r->user);
       return OK;
     }
     /* check for users in a file */ 
     else if (!strcmp("userfile",szRequire_cmd)) {
       szFileName = ap_getword_conf(r->pool, &szRequireLine);
-      if (!user_in_file(r, szMyUser, szFileName)) {
-        ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r ,ERRTAG  "user '%s' is not in username list at '%s'",szMyUser,szFileName);
+      if (!user_in_file(r, r->user, szFileName)) {
+        ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r ,ERRTAG  "user '%s' is not in username list at '%s'",r->user,szFileName);
         return HTTP_FORBIDDEN;
-	     } else {
-        return OK;
+      } else {
+      return OK;
       }
     }
   }
-
-  ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r ,ERRTAG  "user '%s' is not authorized",szMyUser);
+  ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r ,ERRTAG  "user '%s' is not authorized",r->user);
   /* forbid by default */
   return HTTP_FORBIDDEN;
 }
 
 
 
+/* Helper struct for CURL response */
 struct MemoryStruct {
   char *memory;
   size_t size;
@@ -596,9 +560,8 @@ struct MemoryStruct {
   request_rec *r;
 };
  
- 
-static size_t
-WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
+/** Callback function for streaming CURL response */
+static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
   size_t realsize = size * nmemb;
   struct MemoryStruct *mem = (struct MemoryStruct *)userp;
@@ -616,10 +579,12 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
   return realsize;
 }
 
-static char *verifyAssertionRemote(request_rec *r, strAuth_browserid_config_rec *conf, char *assertionText)
+/* Pass the assertion to the verification service defined in the config,
+ * and return the result to the caller */
+static char *verifyAssertionRemote(request_rec *r, BrowserIDConfigRec *conf, char *assertionText)
 {
   CURL *curl = curl_easy_init();
-  curl_easy_setopt(curl, CURLOPT_URL, conf->szAuth_browserid_VerificationServerURL);
+  curl_easy_setopt(curl, CURLOPT_URL, conf->verificationServerURL);
   curl_easy_setopt(curl, CURLOPT_POST, 1);
 
   ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r ,
@@ -659,7 +624,7 @@ static char *verifyAssertionRemote(request_rec *r, strAuth_browserid_config_rec 
   return chunk.memory;
 }
 
-
+/* Parse x-www-url-formencoded args */
 apr_table_t *parseArgs(request_rec *r, char *argStr)
 {
   char* pair ;
@@ -690,23 +655,15 @@ apr_table_t *parseArgs(request_rec *r, char *argStr)
   return vars;
 }
 
-void createSessionCookie(request_rec *r, strAuth_browserid_config_rec *conf, char *identity)
+/** Create a session cookie with a given identity */
+static void createSessionCookie(request_rec *r, BrowserIDConfigRec *conf, char *identity)
 {
-  /*** XXX salt the secret ***/
-  SHA1_CTX context;
-  SHA1Init(&context);
-  SHA1Update(&context, (unsigned char*)identity, strlen(identity));
-  SHA1Update(&context, (unsigned char*)conf->szAuth_browserid_Secret, strlen(conf->szAuth_browserid_Secret));
+  char *digest64 = generateSignature(r, conf, identity);
   
-  unsigned char digest[20];
-  SHA1Final(digest, &context);
-  char *digest64 = apr_palloc(r->pool, apr_base64_encode_len(20));
-  apr_base64_encode(digest64, (char*)digest, 20);
-  
-  /* set a new cookie containing the assertion*/
+  /* syntax of cookie is identity|signature */
   apr_table_set(r->err_headers_out, "Set-Cookie", 
     apr_psprintf(r->pool, "%s=%s|%s; Path=/", 
-      conf->szAuth_browserid_CookieName, identity, digest64));
+      conf->cookieName, identity, digest64));
 }
 
 /*
@@ -719,12 +676,12 @@ void createSessionCookie(request_rec *r, strAuth_browserid_config_rec *conf, cha
  */
 static int Auth_browserid_fixups(request_rec *r)
 {
-    strAuth_browserid_config_rec *conf=NULL;
+    BrowserIDConfigRec *conf=NULL;
 
     /* get apache config */
     conf = ap_get_module_config(r->per_dir_config, &mod_auth_browserid_module);
 
-    if (conf->szAuth_browserid_SubmitPath && !strcmp(r->uri, conf->szAuth_browserid_SubmitPath)) {
+    if (conf->submitPath && !strcmp(r->uri, conf->submitPath)) {
       /* this is a login submission */
       ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "Submission to BrowserID form handler");
 
@@ -745,7 +702,7 @@ static int Auth_browserid_fixups(request_rec *r)
 
           /* verify the assertion... */
           yajl_val parsed_result = NULL;
-          if (conf->szAuth_browserid_VerificationServerURL) {
+          if (conf->verificationServerURL) {
             char *assertionResult = verifyAssertionRemote(r, conf, (char*)assertionParsed);
             if (assertionResult) {
               char errorBuffer[256];
@@ -762,7 +719,7 @@ static int Auth_browserid_fixups(request_rec *r)
               return DECLINED;
             }
           } else {
-            if (conf->szAuth_browserid_VerifyLocally) {
+            if (conf->verifyLocally) {
               char *hdr=NULL, *payload=NULL, *sig=NULL;
               char *assertion = apr_pstrdup(r->pool, assertionParsed);
               hdr= apr_strtok(assertion, ".", &payload);
@@ -771,7 +728,7 @@ static int Auth_browserid_fixups(request_rec *r)
                 if (sig) {
                   int len = apr_base64_decode_len(payload);
                   char *payloadDecode = apr_pcalloc(r->pool, len+1);
-                  int decodeLen = apr_base64_decode(payloadDecode, payload);
+                  apr_base64_decode(payloadDecode, payload);
                   
                   char errorBuffer[256];
                   parsed_result = yajl_tree_parse(payloadDecode, errorBuffer, 255);
@@ -797,7 +754,6 @@ static int Auth_browserid_fixups(request_rec *r)
               return DECLINED;
             }
             ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "In post_read_request; got email %s", foundEmail->u.string);
-            
             createSessionCookie(r, conf, foundEmail->u.string);
 
             /* redirect to the requested resource */
@@ -828,59 +784,52 @@ static void register_hooks(apr_pool_t *p)
 /************************************************************************************
  *  Apache CONFIG Phase:
  ************************************************************************************/
-static void *create_Auth_browserid_dir_config(apr_pool_t *p, char *d)
+static void *create_browserid_config(apr_pool_t *p, char *d)
 {
-    strAuth_browserid_config_rec *conf = apr_palloc(p, sizeof(*conf));
+    BrowserIDConfigRec *conf = apr_palloc(p, sizeof(*conf));
 
-    conf->szAuth_browserid_CookieName = apr_pstrdup(p,"BrowserID");
-    conf->szAuth_browserid_SubmitPath = "/mod_browserid_submit";
-    conf->szAuth_browserid_Secret = "BrowserIDSecret";
-    conf->nAuth_browserid_Authoritative = 0;  /* not by default */
-    conf->nAuth_browserid_authbasicfix = 1;  /* fix header for php auth by default */
-    conf->nAuth_browserid_SetSessionHTTPHeader = 0; /* set session information in http header of authenticated user */
-    conf->nAuth_browserid_SetSessionHTTPHeaderEncode = 1; /* encode http header groups value by default */
-
-
+    conf->cookieName = apr_pstrdup(p,"BrowserID");
+    conf->submitPath = "/mod_browserid_submit";
+    conf->serverSecret = "BrowserIDSecret";
+    conf->authoritative = 0;  /* not by default */
+    conf->authBasicFix = 0;  /* do not fix header for php auth by default */
+    conf->forwardedRequestHeader = NULL; /* pass the authenticated user, signed, as an HTTP header */
     return conf;
 }
 
 /* apache config fonction of the module */
 static const command_rec Auth_browserid_cmds[] =
 {
-    AP_INIT_FLAG ("AuthBrowserIDSetSessionHTTPHeader", ap_set_flag_slot,
-     (void *)APR_OFFSETOF(strAuth_browserid_config_rec, nAuth_browserid_SetSessionHTTPHeader),
-     OR_AUTHCFG, "Set to 'yes' to set session information to http header of the authenticated users, no by default"),
-
-    AP_INIT_FLAG ("AuthBrowserIDSetSessionHTTPHeaderEncode", ap_set_flag_slot,
-     (void *)APR_OFFSETOF(strAuth_browserid_config_rec, nAuth_browserid_SetSessionHTTPHeaderEncode),
-     OR_AUTHCFG, "Set to 'yes' to mime64 encode session information to http header, no by default"),
+    AP_INIT_TAKE1 ("AuthBrowserIDSetHTTPHeader", ap_set_string_slot,
+     (void *)APR_OFFSETOF(BrowserIDConfigRec, forwardedRequestHeader),
+     OR_AUTHCFG, "Set to 'yes' to forward a signed HTTP header containing the verified identity; set to 'no' by default"),
 
     AP_INIT_TAKE1("AuthBrowserIDCookieName", ap_set_string_slot,
-     (void *)APR_OFFSETOF(strAuth_browserid_config_rec, szAuth_browserid_CookieName),
+     (void *)APR_OFFSETOF(BrowserIDConfigRec, cookieName),
      OR_AUTHCFG, "Name of cookie to set"),
 
     AP_INIT_FLAG ("AuthBrowserIDAuthoritative", ap_set_flag_slot,
-     (void *)APR_OFFSETOF(strAuth_browserid_config_rec, nAuth_browserid_Authoritative),
-     OR_AUTHCFG, "Set to 'yes' to allow access control to be passed along to lower modules, set to 'no' by default"),
+     (void *)APR_OFFSETOF(BrowserIDConfigRec, authoritative),
+     OR_AUTHCFG, "Set to 'yes' to allow access control to be passed along to lower modules; set to 'no' by default"),
 
     AP_INIT_FLAG ("AuthBrowserIDSimulateAuthBasic", ap_set_flag_slot,
-     (void *)APR_OFFSETOF(strAuth_browserid_config_rec, nAuth_browserid_authbasicfix),
-     OR_AUTHCFG, "Set to 'no' to fix http header and auth_type for simulating auth basic for scripting language like php auth framework work, set to 'yes' by default"),
+     (void *)APR_OFFSETOF(BrowserIDConfigRec, authBasicFix),
+     OR_AUTHCFG, "Set to 'yes' to disable creation of a synthetic Basic Authorization header containing the username"),
 
     AP_INIT_TAKE1 ("AuthBrowserIDSubmitPath", ap_set_string_slot,
-     (void *)APR_OFFSETOF(strAuth_browserid_config_rec, szAuth_browserid_SubmitPath),
+     (void *)APR_OFFSETOF(BrowserIDConfigRec, submitPath),
      OR_AUTHCFG, "Path to which login forms will be submitted.  Form must contain a field named 'assertion'"),
 
     AP_INIT_TAKE1 ("AuthBrowserIDVerificationServerURL", ap_set_string_slot,
-     (void *)APR_OFFSETOF(strAuth_browserid_config_rec, szAuth_browserid_VerificationServerURL),
+     (void *)APR_OFFSETOF(BrowserIDConfigRec, verificationServerURL),
      OR_AUTHCFG, "URL of the BrowserID verification server."),
 
     AP_INIT_FLAG ("AuthBrowserIDVerifyLocally", ap_set_flag_slot,
-     (void *)APR_OFFSETOF(strAuth_browserid_config_rec, szAuth_browserid_VerifyLocally),
+     (void *)APR_OFFSETOF(BrowserIDConfigRec, verifyLocally),
      OR_AUTHCFG, "Set to 'yes' to verify assertions locally; ignored if VerificationServerURL is set"),
 
     AP_INIT_TAKE1 ("AuthBrowserIDSecret", ap_set_string_slot,
-     (void *)APR_OFFSETOF(strAuth_browserid_config_rec, szAuth_browserid_Secret),
+     (void *)APR_OFFSETOF(BrowserIDConfigRec, serverSecret),
      OR_AUTHCFG, "Server secret for authentication cookie."),
 
     {NULL}
@@ -890,10 +839,10 @@ static const command_rec Auth_browserid_cmds[] =
 module AP_MODULE_DECLARE_DATA mod_auth_browserid_module =
 {
     STANDARD20_MODULE_STUFF,
-    create_Auth_browserid_dir_config, /* dir config creater */
+    create_browserid_config,    /* dir config creator */
     NULL,                       /* dir merger --- default is to override */
     NULL,                       /* server config */
     NULL,                       /* merge server config */
-    Auth_browserid_cmds,              /* command apr_table_t */
+    Auth_browserid_cmds,        /* command apr_table_t */
     register_hooks              /* register hooks */
 };
