@@ -3,10 +3,12 @@ mod_browserid is a module for Apache 2.0 or later that implements Apache authent
 Building and Installing
 =======================
 
+```
 git clone git@github.com:mozilla/mod_browserid.git
 cd mod_browserid
 make
 sudo make install
+```
 
 (this assumes apxs is behaving properly on your system)
 
