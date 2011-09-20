@@ -777,11 +777,11 @@ static int processLogout(request_rec *r, BrowserIDConfigRec *conf)
     const char *returnto = apr_table_get(vars, "returnto") ;
     if (returnto) {
       apr_table_set(r->headers_out,"Location", returnto);
-      return OK;
+      return HTTP_TEMPORARY_REDIRECT;
     }
   }
   apr_table_set(r->headers_out,"Location", "/");
-  return OK;
+  return HTTP_TEMPORARY_REDIRECT;
 }
 
 /*
