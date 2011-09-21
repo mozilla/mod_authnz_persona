@@ -22,7 +22,7 @@ Dependencies
 Design Discussion
 =================
 
-The nodule works by intercepting requests bound for protected resources, and checking for the presence of a session cookie.  The name of the cookie is defined in the module's configuration.  Note that while the configuration seems to allow you to set a different cookie name for each protected location, the actual cookie is set for the root of the virtual host, so all Location and Directory directives within a host MUST have the same cookie name.
+The module works by intercepting requests bound for protected resources, and checking for the presence of a session cookie.  The name of the cookie is defined in the module's configuration.  Note that while the configuration seems to allow you to set a different cookie name for each protected location, the actual cookie is set for the root of the virtual host, so all Location and Directory directives within a host MUST have the same cookie name.
 
 If the cookie is not found, the user agent is served the ErrorDocument for the directory instead of the resource, with an error code of 401 (which prevents browser caching).  The ErrorDocument must implement the BrowserID sign-in flow, and submit the result to the path identified by the `AuthBrowserIDSubmitPath` directive.  (Note that POST parsing isn't implemented yet; you must use GET!, #5)  The form submission must contain a value named `assertion`, containing the assertion, and another named `returnto`, containing the relative path of the originally requested resource.
 
