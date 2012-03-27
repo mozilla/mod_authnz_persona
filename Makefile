@@ -1,6 +1,6 @@
 CC=gcc
-ifneq ($(APXS_PATH),)
-	APXS_PATH=/usr/sbin/apxs
+ifeq ($(APXS_PATH),)
+APXS_PATH=/usr/sbin/apxs
 endif
 
 MY_LDFLAGS=-lcurl -lyajl
