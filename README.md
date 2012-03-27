@@ -4,13 +4,13 @@ Building and Installing
 =======================
 
 ```
-git clone git@github.com:mozilla/mod_browserid.git
+git clone https://github.com/mozilla/mod_browserid.git
 cd mod_browserid
 make
 sudo make install
 ```
 
-(this assumes apxs is behaving properly on your system)
+(this assumes apxs is behaving properly on your system; set the APXS_PATH variable to your apxs or apxs2 as appropriate)
 
 Dependencies
 ============

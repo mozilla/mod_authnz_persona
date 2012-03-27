@@ -1,5 +1,7 @@
 CC=gcc
-MY_APXS=/usr/sbin/apxs
+ifneq ($(APXS_PATH),)
+	APXS_PATH=/usr/sbin/apxs
+endif
 
 MY_LDFLAGS=-lcurl -lyajl
 
@@ -8,7 +10,7 @@ MY_CFLAGS=-Wc,-I. -Wc,-Wall
 
 .SUFFIXES: .c .o .la
 .c.la:
-	$(MY_APXS) $(MY_LDFLAGS) $(MY_CFLAGS) -c $< 
+	$(APXS_PATH) $(MY_LDFLAGS) $(MY_CFLAGS) -c $< 
 .c.o:
 	$(CC) -c $<
 
