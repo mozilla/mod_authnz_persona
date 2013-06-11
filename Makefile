@@ -16,8 +16,8 @@ build/.libs/mod_auth_browserid.so: $(SRCS)
 
 all:  build/.libs/mod_auth_browserid.so
 
-install: build/.libs/mod_auth_browserid.so
-	$(APXS_PATH) -i build/mod_auth_browserid.c
+install: build/mod_auth_browserid.la
+	$(APXS_PATH) -i $<
 
 clean:
 	-rm -rf build
