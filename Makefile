@@ -10,17 +10,17 @@ MY_CFLAGS=-Wc,-I. -Wc,-Wall
 
 .SUFFIXES: .c .o .la
 .c.la:
-	$(APXS_PATH) $(MY_LDFLAGS) $(MY_CFLAGS) -c $< 
+	$(APXS_PATH) $(MY_LDFLAGS) $(MY_CFLAGS) -c $<
 .c.o:
 	$(CC) -c $<
 
-all:  mod_auth_browserid.la 
+all:  mod_auth_browserid.la
 
-install: mod_auth_browserid.la 
+install: mod_auth_browserid.la
 	@echo "-"$*"-" "-"$?"-" "-"$%"-" "-"$@"-" "-"$<"-"
-	$(MY_APXS) -i $?
+	$(APXS_PATH) -i $?
 
 clean:
-	-rm -f *.o *.lo *.la *.slo 
+	-rm -f *.o *.lo *.la *.slo
 	-rm -rf .libs
 
