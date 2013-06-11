@@ -70,7 +70,11 @@ void SHA1Final(unsigned char digest[20], SHA1_CTX* context);
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>	/* for u_int*_t */
+#ifdef __APPLE__
+#include <machine/endian.h>
+#else
 #include <endian.h>
+#endif
 
 #define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
 
