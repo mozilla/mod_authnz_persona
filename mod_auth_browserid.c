@@ -44,15 +44,15 @@
 
 
 /*
-SHA-1 in C
-By Steve Reid <steve@edmweb.com>
-100% Public Domain
+  SHA-1 in C
+  By Steve Reid <steve@edmweb.com>
+  100% Public Domain
 */
 
 typedef struct {
-    u_int32_t state[5];
-    u_int32_t count[2];
-    unsigned char buffer[64];
+  u_int32_t state[5];
+  u_int32_t count[2];
+  unsigned char buffer[64];
 } SHA1_CTX;
 
 void SHA1Transform(u_int32_t state[5], const unsigned char buffer[64]);
@@ -82,14 +82,14 @@ void SHA1Final(unsigned char digest[20], SHA1_CTX* context);
 /* I got the idea of expanding during the round function from SSLeay */
 #if BYTE_ORDER == LITTLE_ENDIAN
 #define blk0(i) (block->l[i] = (rol(block->l[i],24)&0xFF00FF00) \
-    |(rol(block->l[i],8)&0x00FF00FF))
+                 |(rol(block->l[i],8)&0x00FF00FF))
 #elif BYTE_ORDER == BIG_ENDIAN
 #define blk0(i) block->l[i]
 #else
 #error "Endianness not defined!"
 #endif
 #define blk(i) (block->l[i&15] = rol(block->l[(i+13)&15]^block->l[(i+8)&15] \
-    ^block->l[(i+2)&15]^block->l[i&15],1))
+                                     ^block->l[(i+2)&15]^block->l[i&15],1))
 
 /* (R0+R1), R2, R3, R4 are the different operations used in SHA1 */
 #define R0(v,w,x,y,z,i) z+=((w&(x^y))^y)+blk0(i)+0x5A827999+rol(v,5);w=rol(w,30);
@@ -103,59 +103,59 @@ void SHA1Final(unsigned char digest[20], SHA1_CTX* context);
 
 void SHA1Transform(u_int32_t state[5], const unsigned char buffer[64])
 {
-u_int32_t a, b, c, d, e;
-typedef union {
+  u_int32_t a, b, c, d, e;
+  typedef union {
     unsigned char c[64];
     u_int32_t l[16];
-} CHAR64LONG16;
+  } CHAR64LONG16;
 #ifdef SHA1HANDSOFF
-CHAR64LONG16 block[1];  /* use array to appear as a pointer */
-    memcpy(block, buffer, 64);
+  CHAR64LONG16 block[1];  /* use array to appear as a pointer */
+  memcpy(block, buffer, 64);
 #else
-    /* The following had better never be used because it causes the
-     * pointer-to-const buffer to be cast into a pointer to non-const.
-     * And the result is written through.  I threw a "const" in, hoping
-     * this will cause a diagnostic.
-     */
-CHAR64LONG16* block = (const CHAR64LONG16*)buffer;
+  /* The following had better never be used because it causes the
+   * pointer-to-const buffer to be cast into a pointer to non-const.
+   * And the result is written through.  I threw a "const" in, hoping
+   * this will cause a diagnostic.
+   */
+  CHAR64LONG16* block = (const CHAR64LONG16*)buffer;
 #endif
-    /* Copy context->state[] to working vars */
-    a = state[0];
-    b = state[1];
-    c = state[2];
-    d = state[3];
-    e = state[4];
-    /* 4 rounds of 20 operations each. Loop unrolled. */
-    R0(a,b,c,d,e, 0); R0(e,a,b,c,d, 1); R0(d,e,a,b,c, 2); R0(c,d,e,a,b, 3);
-    R0(b,c,d,e,a, 4); R0(a,b,c,d,e, 5); R0(e,a,b,c,d, 6); R0(d,e,a,b,c, 7);
-    R0(c,d,e,a,b, 8); R0(b,c,d,e,a, 9); R0(a,b,c,d,e,10); R0(e,a,b,c,d,11);
-    R0(d,e,a,b,c,12); R0(c,d,e,a,b,13); R0(b,c,d,e,a,14); R0(a,b,c,d,e,15);
-    R1(e,a,b,c,d,16); R1(d,e,a,b,c,17); R1(c,d,e,a,b,18); R1(b,c,d,e,a,19);
-    R2(a,b,c,d,e,20); R2(e,a,b,c,d,21); R2(d,e,a,b,c,22); R2(c,d,e,a,b,23);
-    R2(b,c,d,e,a,24); R2(a,b,c,d,e,25); R2(e,a,b,c,d,26); R2(d,e,a,b,c,27);
-    R2(c,d,e,a,b,28); R2(b,c,d,e,a,29); R2(a,b,c,d,e,30); R2(e,a,b,c,d,31);
-    R2(d,e,a,b,c,32); R2(c,d,e,a,b,33); R2(b,c,d,e,a,34); R2(a,b,c,d,e,35);
-    R2(e,a,b,c,d,36); R2(d,e,a,b,c,37); R2(c,d,e,a,b,38); R2(b,c,d,e,a,39);
-    R3(a,b,c,d,e,40); R3(e,a,b,c,d,41); R3(d,e,a,b,c,42); R3(c,d,e,a,b,43);
-    R3(b,c,d,e,a,44); R3(a,b,c,d,e,45); R3(e,a,b,c,d,46); R3(d,e,a,b,c,47);
-    R3(c,d,e,a,b,48); R3(b,c,d,e,a,49); R3(a,b,c,d,e,50); R3(e,a,b,c,d,51);
-    R3(d,e,a,b,c,52); R3(c,d,e,a,b,53); R3(b,c,d,e,a,54); R3(a,b,c,d,e,55);
-    R3(e,a,b,c,d,56); R3(d,e,a,b,c,57); R3(c,d,e,a,b,58); R3(b,c,d,e,a,59);
-    R4(a,b,c,d,e,60); R4(e,a,b,c,d,61); R4(d,e,a,b,c,62); R4(c,d,e,a,b,63);
-    R4(b,c,d,e,a,64); R4(a,b,c,d,e,65); R4(e,a,b,c,d,66); R4(d,e,a,b,c,67);
-    R4(c,d,e,a,b,68); R4(b,c,d,e,a,69); R4(a,b,c,d,e,70); R4(e,a,b,c,d,71);
-    R4(d,e,a,b,c,72); R4(c,d,e,a,b,73); R4(b,c,d,e,a,74); R4(a,b,c,d,e,75);
-    R4(e,a,b,c,d,76); R4(d,e,a,b,c,77); R4(c,d,e,a,b,78); R4(b,c,d,e,a,79);
-    /* Add the working vars back into context.state[] */
-    state[0] += a;
-    state[1] += b;
-    state[2] += c;
-    state[3] += d;
-    state[4] += e;
-    /* Wipe variables */
-    a = b = c = d = e = 0;
+  /* Copy context->state[] to working vars */
+  a = state[0];
+  b = state[1];
+  c = state[2];
+  d = state[3];
+  e = state[4];
+  /* 4 rounds of 20 operations each. Loop unrolled. */
+  R0(a,b,c,d,e, 0); R0(e,a,b,c,d, 1); R0(d,e,a,b,c, 2); R0(c,d,e,a,b, 3);
+  R0(b,c,d,e,a, 4); R0(a,b,c,d,e, 5); R0(e,a,b,c,d, 6); R0(d,e,a,b,c, 7);
+  R0(c,d,e,a,b, 8); R0(b,c,d,e,a, 9); R0(a,b,c,d,e,10); R0(e,a,b,c,d,11);
+  R0(d,e,a,b,c,12); R0(c,d,e,a,b,13); R0(b,c,d,e,a,14); R0(a,b,c,d,e,15);
+  R1(e,a,b,c,d,16); R1(d,e,a,b,c,17); R1(c,d,e,a,b,18); R1(b,c,d,e,a,19);
+  R2(a,b,c,d,e,20); R2(e,a,b,c,d,21); R2(d,e,a,b,c,22); R2(c,d,e,a,b,23);
+  R2(b,c,d,e,a,24); R2(a,b,c,d,e,25); R2(e,a,b,c,d,26); R2(d,e,a,b,c,27);
+  R2(c,d,e,a,b,28); R2(b,c,d,e,a,29); R2(a,b,c,d,e,30); R2(e,a,b,c,d,31);
+  R2(d,e,a,b,c,32); R2(c,d,e,a,b,33); R2(b,c,d,e,a,34); R2(a,b,c,d,e,35);
+  R2(e,a,b,c,d,36); R2(d,e,a,b,c,37); R2(c,d,e,a,b,38); R2(b,c,d,e,a,39);
+  R3(a,b,c,d,e,40); R3(e,a,b,c,d,41); R3(d,e,a,b,c,42); R3(c,d,e,a,b,43);
+  R3(b,c,d,e,a,44); R3(a,b,c,d,e,45); R3(e,a,b,c,d,46); R3(d,e,a,b,c,47);
+  R3(c,d,e,a,b,48); R3(b,c,d,e,a,49); R3(a,b,c,d,e,50); R3(e,a,b,c,d,51);
+  R3(d,e,a,b,c,52); R3(c,d,e,a,b,53); R3(b,c,d,e,a,54); R3(a,b,c,d,e,55);
+  R3(e,a,b,c,d,56); R3(d,e,a,b,c,57); R3(c,d,e,a,b,58); R3(b,c,d,e,a,59);
+  R4(a,b,c,d,e,60); R4(e,a,b,c,d,61); R4(d,e,a,b,c,62); R4(c,d,e,a,b,63);
+  R4(b,c,d,e,a,64); R4(a,b,c,d,e,65); R4(e,a,b,c,d,66); R4(d,e,a,b,c,67);
+  R4(c,d,e,a,b,68); R4(b,c,d,e,a,69); R4(a,b,c,d,e,70); R4(e,a,b,c,d,71);
+  R4(d,e,a,b,c,72); R4(c,d,e,a,b,73); R4(b,c,d,e,a,74); R4(a,b,c,d,e,75);
+  R4(e,a,b,c,d,76); R4(d,e,a,b,c,77); R4(c,d,e,a,b,78); R4(b,c,d,e,a,79);
+  /* Add the working vars back into context.state[] */
+  state[0] += a;
+  state[1] += b;
+  state[2] += c;
+  state[3] += d;
+  state[4] += e;
+  /* Wipe variables */
+  a = b = c = d = e = 0;
 #ifdef SHA1HANDSOFF
-    memset(block, '\0', sizeof(block));
+  memset(block, '\0', sizeof(block));
 #endif
 }
 
@@ -164,13 +164,13 @@ CHAR64LONG16* block = (const CHAR64LONG16*)buffer;
 
 void SHA1Init(SHA1_CTX* context)
 {
-    /* SHA1 initialization constants */
-    context->state[0] = 0x67452301;
-    context->state[1] = 0xEFCDAB89;
-    context->state[2] = 0x98BADCFE;
-    context->state[3] = 0x10325476;
-    context->state[4] = 0xC3D2E1F0;
-    context->count[0] = context->count[1] = 0;
+  /* SHA1 initialization constants */
+  context->state[0] = 0x67452301;
+  context->state[1] = 0xEFCDAB89;
+  context->state[2] = 0x98BADCFE;
+  context->state[3] = 0x10325476;
+  context->state[4] = 0xC3D2E1F0;
+  context->count[0] = context->count[1] = 0;
 }
 
 
@@ -178,24 +178,24 @@ void SHA1Init(SHA1_CTX* context)
 
 void SHA1Update(SHA1_CTX* context, const unsigned char* data, u_int32_t len)
 {
-u_int32_t i;
-u_int32_t j;
+  u_int32_t i;
+  u_int32_t j;
 
-    j = context->count[0];
-    if ((context->count[0] += len << 3) < j)
-	context->count[1]++;
-    context->count[1] += (len>>29);
-    j = (j >> 3) & 63;
-    if ((j + len) > 63) {
-        memcpy(&context->buffer[j], data, (i = 64-j));
-        SHA1Transform(context->state, context->buffer);
-        for ( ; i + 63 < len; i += 64) {
-            SHA1Transform(context->state, &data[i]);
-        }
-        j = 0;
+  j = context->count[0];
+  if ((context->count[0] += len << 3) < j)
+    context->count[1]++;
+  context->count[1] += (len>>29);
+  j = (j >> 3) & 63;
+  if ((j + len) > 63) {
+    memcpy(&context->buffer[j], data, (i = 64-j));
+    SHA1Transform(context->state, context->buffer);
+    for ( ; i + 63 < len; i += 64) {
+      SHA1Transform(context->state, &data[i]);
     }
-    else i = 0;
-    memcpy(&context->buffer[j], &data[i], len - i);
+    j = 0;
+  }
+  else i = 0;
+  memcpy(&context->buffer[j], &data[i], len - i);
 }
 
 
@@ -203,46 +203,46 @@ u_int32_t j;
 
 void SHA1Final(unsigned char digest[20], SHA1_CTX* context)
 {
-unsigned i;
-unsigned char finalcount[8];
-unsigned char c;
+  unsigned i;
+  unsigned char finalcount[8];
+  unsigned char c;
 
 #if 0	/* untested "improvement" by DHR */
-    /* Convert context->count to a sequence of bytes
-     * in finalcount.  Second element first, but
-     * big-endian order within element.
-     * But we do it all backwards.
-     */
-    unsigned char *fcp = &finalcount[8];
+  /* Convert context->count to a sequence of bytes
+   * in finalcount.  Second element first, but
+   * big-endian order within element.
+   * But we do it all backwards.
+   */
+  unsigned char *fcp = &finalcount[8];
 
-    for (i = 0; i < 2; i++)
-    {
-	u_int32_t t = context->count[i];
-	int j;
+  for (i = 0; i < 2; i++)
+  {
+    u_int32_t t = context->count[i];
+    int j;
 
-	for (j = 0; j < 4; t >>= 8, j++)
-	    *--fcp = (unsigned char) t
-    }
+    for (j = 0; j < 4; t >>= 8, j++)
+      *--fcp = (unsigned char) t
+        }
 #else
-    for (i = 0; i < 8; i++) {
-        finalcount[i] = (unsigned char)((context->count[(i >= 4 ? 0 : 1)]
-         >> ((3-(i & 3)) * 8) ) & 255);  /* Endian independent */
-    }
+  for (i = 0; i < 8; i++) {
+    finalcount[i] = (unsigned char)((context->count[(i >= 4 ? 0 : 1)]
+                                     >> ((3-(i & 3)) * 8) ) & 255);  /* Endian independent */
+  }
 #endif
-    c = 0200;
+  c = 0200;
+  SHA1Update(context, &c, 1);
+  while ((context->count[0] & 504) != 448) {
+    c = 0000;
     SHA1Update(context, &c, 1);
-    while ((context->count[0] & 504) != 448) {
-	c = 0000;
-        SHA1Update(context, &c, 1);
-    }
-    SHA1Update(context, finalcount, 8);  /* Should cause a SHA1Transform() */
-    for (i = 0; i < 20; i++) {
-        digest[i] = (unsigned char)
-         ((context->state[i>>2] >> ((3-(i & 3)) * 8) ) & 255);
-    }
-    /* Wipe variables */
-    memset(context, '\0', sizeof(*context));
-    memset(&finalcount, '\0', sizeof(finalcount));
+  }
+  SHA1Update(context, finalcount, 8);  /* Should cause a SHA1Transform() */
+  for (i = 0; i < 20; i++) {
+    digest[i] = (unsigned char)
+      ((context->state[i>>2] >> ((3-(i & 3)) * 8) ) & 255);
+  }
+  /* Wipe variables */
+  memset(context, '\0', sizeof(*context));
+  memset(&finalcount, '\0', sizeof(finalcount));
 }
 /* ================ end of sha1.c ================ */
 
@@ -315,7 +315,7 @@ static int user_in_file(request_rec *r, char *username, char *filename)
   status = ap_pcfg_openfile(&f, r->pool, filename);
   if (status != APR_SUCCESS) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR, status, r,
-		  "Could not open user file: %s", filename);
+                  "Could not open user file: %s", filename);
     return 0;
   }
 
@@ -344,13 +344,13 @@ static int user_in_file(request_rec *r, char *username, char *filename)
 static void fix_headers_in(request_rec *r,char*szPassword)
 {
   char *szUser=NULL;
- /* Set an Authorization header in the input request table for php and
-  other applications that use it to obtain the username (mainly to fix
-  apache logging of php scripts). We only set this if there is no header
-  already present. */
+  /* Set an Authorization header in the input request table for php and
+     other applications that use it to obtain the username (mainly to fix
+     apache logging of php scripts). We only set this if there is no header
+     already present. */
 
- if (apr_table_get(r->headers_in,"Authorization")==NULL) 
- {
+  if (apr_table_get(r->headers_in,"Authorization")==NULL) 
+  {
     ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "fixing apache Authorization header for this request using user: %s",r->user);
 
     /* concat username and ':' */
@@ -381,43 +381,43 @@ static void fix_headers_in(request_rec *r,char*szPassword)
  * signature value. */
 static char *generateSignature(request_rec *r, BrowserIDConfigRec *conf, char *userAddress)
 {
-    SHA1_CTX context;
-    SHA1Init(&context);
-    SHA1Update(&context, (unsigned char*)userAddress, strlen(userAddress));
-    SHA1Update(&context, (unsigned char*)conf->serverSecret, strlen(conf->serverSecret));
-    unsigned char digest[20];
-    SHA1Final(digest, &context);
+  SHA1_CTX context;
+  SHA1Init(&context);
+  SHA1Update(&context, (unsigned char*)userAddress, strlen(userAddress));
+  SHA1Update(&context, (unsigned char*)conf->serverSecret, strlen(conf->serverSecret));
+  unsigned char digest[20];
+  SHA1Final(digest, &context);
     
-    char *digest64 = apr_palloc(r->pool, apr_base64_encode_len(20));
-    apr_base64_encode(digest64, (char*)digest, 20);
-    return digest64;
+  char *digest64 = apr_palloc(r->pool, apr_base64_encode_len(20));
+  apr_base64_encode(digest64, (char*)digest, 20);
+  return digest64;
 }
 
 /* Check the cookie and make sure it is valid */
 static int validateCookie(request_rec *r, BrowserIDConfigRec *conf, char *szCookieValue)
 {
-    /* split at | */
-    char *sig = NULL;
-    char *addr = apr_strtok(szCookieValue, "|", &sig);
-    if (!addr) {
-      ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "malformed BrowserID cookie");
-      return 1;
-    }
+  /* split at | */
+  char *sig = NULL;
+  char *addr = apr_strtok(szCookieValue, "|", &sig);
+  if (!addr) {
+    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "malformed BrowserID cookie");
+    return 1;
+  }
 
-    char *digest64 = generateSignature(r, conf, addr);
-    ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "Got cookie: email is %s; expected digest is %s; got digest %s",
-		  addr, digest64, sig);
+  char *digest64 = generateSignature(r, conf, addr);
+  ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "Got cookie: email is %s; expected digest is %s; got digest %s",
+                addr, digest64, sig);
 
-    /* paranoia indicates that we should use a time-invariant compare here */
-    if (strcmp(digest64, sig)) {
-      ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "invalid BrowserID cookie");
-      free(digest64);
-      return 1;
-    }
+  /* paranoia indicates that we should use a time-invariant compare here */
+  if (strcmp(digest64, sig)) {
+    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "invalid BrowserID cookie");
+    free(digest64);
+    return 1;
+  }
     
-    /* Cookie is good: set r->user */
-    r->user = (char*)addr;
-    return 0;
+  /* Cookie is good: set r->user */
+  r->user = (char*)addr;
+  return 0;
 }
 
 /**************************************************
@@ -427,54 +427,54 @@ static int validateCookie(request_rec *r, BrowserIDConfigRec *conf, char *szCook
  **************************************************/
 static int Auth_browserid_check_cookie(request_rec *r)
 {
-    BrowserIDConfigRec *conf=NULL;
-    char *szCookieValue=NULL;
-    char *szRemoteIP=NULL;
+  BrowserIDConfigRec *conf=NULL;
+  char *szCookieValue=NULL;
+  char *szRemoteIP=NULL;
 
-    ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG  "ap_hook_check_user_id in - Auth_browserid_check_cookie");
+  ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG  "ap_hook_check_user_id in - Auth_browserid_check_cookie");
 
-    /* get apache config */
-    conf = ap_get_module_config(r->per_dir_config, &mod_auth_browserid_module);
+  /* get apache config */
+  conf = ap_get_module_config(r->per_dir_config, &mod_auth_browserid_module);
 
-    unless(conf->authoritative)
-	   return DECLINED;
+  unless(conf->authoritative)
+    return DECLINED;
 
-    ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "AuthType are '%s'", ap_auth_type(r));
-    unless(strncmp("BrowserID",ap_auth_type(r),9)==0) {
-	   ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth type must be 'BrowserID'");
-      return HTTP_UNAUTHORIZED;
-    }
+  ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "AuthType are '%s'", ap_auth_type(r));
+  unless(strncmp("BrowserID",ap_auth_type(r),9)==0) {
+    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth type must be 'BrowserID'");
+    return HTTP_UNAUTHORIZED;
+  }
 
-    unless(conf->cookieName) {
-      ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "No Auth_browserid_CookieName specified");
-      return HTTP_UNAUTHORIZED;
-    }
+  unless(conf->cookieName) {
+    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "No Auth_browserid_CookieName specified");
+    return HTTP_UNAUTHORIZED;
+  }
 
-    /* get cookie who are named cookieName */
-    unless(szCookieValue = extract_cookie(r, conf->cookieName))
-    {
-      ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "BrowserID cookie not found; not authorized! RemoteIP:%s",szRemoteIP);
-      return HTTP_UNAUTHORIZED;
-    }
-    ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "got cookie; value is %s", szCookieValue);
+  /* get cookie who are named cookieName */
+  unless(szCookieValue = extract_cookie(r, conf->cookieName))
+  {
+    ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "BrowserID cookie not found; not authorized! RemoteIP:%s",szRemoteIP);
+    return HTTP_UNAUTHORIZED;
+  }
+  ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "got cookie; value is %s", szCookieValue);
 
-    /* Check cookie validity */
-    if (validateCookie(r, conf, szCookieValue)) {
-        ap_log_rerror(APLOG_MARK, APLOG_WARNING|APLOG_NOERRNO, 0, r, ERRTAG "Invalid BrowserID cookie: %s", szCookieValue);
-        return HTTP_UNAUTHORIZED;
-    }
+  /* Check cookie validity */
+  if (validateCookie(r, conf, szCookieValue)) {
+    ap_log_rerror(APLOG_MARK, APLOG_WARNING|APLOG_NOERRNO, 0, r, ERRTAG "Invalid BrowserID cookie: %s", szCookieValue);
+    return HTTP_UNAUTHORIZED;
+  }
 
-    /* set REMOTE_USER var for scripts language */
-    apr_table_setn(r->subprocess_env,"REMOTE_USER",r->user);
+  /* set REMOTE_USER var for scripts language */
+  apr_table_setn(r->subprocess_env,"REMOTE_USER",r->user);
 
-    /* log authorisation ok */
-    ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "BrowserID authentication ok");
+  /* log authorisation ok */
+  ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "BrowserID authentication ok");
 
-    /* fix http header for php */
-    if (conf->authBasicFix) fix_headers_in(r,"browserid");
+  /* fix http header for php */
+  if (conf->authBasicFix) fix_headers_in(r,"browserid");
 
-    /* if all is ok return auth ok */
-    return OK;
+  /* if all is ok return auth ok */
+  return OK;
 }
 
 
@@ -546,7 +546,7 @@ static int Auth_browserid_check_auth(request_rec *r)
         ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r ,ERRTAG  "user '%s' is not in username list at '%s'",r->user,szFileName);
         return HTTP_FORBIDDEN;
       } else {
-      return OK;
+        return OK;
       }
     }
   }
@@ -593,10 +593,10 @@ static char *verifyAssertionRemote(request_rec *r, BrowserIDConfigRec *conf, cha
   curl_easy_setopt(curl, CURLOPT_POST, 1);
 
   ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r ,
-		ERRTAG  "Requeting verification with audience %s", r->server->server_hostname);
+                ERRTAG  "Requeting verification with audience %s", r->server->server_hostname);
 
   char *body = apr_psprintf(r->pool, "assertion=%s&audience=%s", 
-			    assertionText, r->server->server_hostname);
+                            assertionText, r->server->server_hostname);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body);
   /** XXX set certificate for SSL negotiation */
 
@@ -612,8 +612,8 @@ static char *verifyAssertionRemote(request_rec *r, BrowserIDConfigRec *conf, cha
   CURLcode result = curl_easy_perform(curl);
   if (result != 0) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r ,
-		  ERRTAG  "Error while communicating with BrowserID verification server: %s",
-		  curl_easy_strerror(result));
+                  ERRTAG  "Error while communicating with BrowserID verification server: %s",
+                  curl_easy_strerror(result));
     curl_easy_cleanup(curl);
     return NULL;
   }
@@ -621,7 +621,7 @@ static char *verifyAssertionRemote(request_rec *r, BrowserIDConfigRec *conf, cha
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
   if (responseCode != 200) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r ,
-		  ERRTAG  "Error while communicating with BrowserID verification server: result code %ld", responseCode);
+                  ERRTAG  "Error while communicating with BrowserID verification server: result code %ld", responseCode);
     curl_easy_cleanup(curl);
     return NULL;
   }
@@ -667,8 +667,8 @@ static void createSessionCookie(request_rec *r, BrowserIDConfigRec *conf, char *
   
   /* syntax of cookie is identity|signature */
   apr_table_set(r->err_headers_out, "Set-Cookie", 
-    apr_psprintf(r->pool, "%s=%s|%s; Path=/", 
-      conf->cookieName, identity, digest64));
+                apr_psprintf(r->pool, "%s=%s|%s; Path=/", 
+                             conf->cookieName, identity, digest64));
 }
 
 /* Called from the fixup_handler when we receive a form submission.
@@ -691,9 +691,9 @@ static int processAssertionFormSubmit(request_rec *r, BrowserIDConfigRec *conf)
       const char *assertionParsed = apr_table_get(vars, "assertion") ;
       const char *returnto = apr_table_get(vars, "returnto") ;
       ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG 
-        "In post_read_request; parsed assertion as %s", assertionParsed);
+                    "In post_read_request; parsed assertion as %s", assertionParsed);
       ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG 
-        "In post_read_request; parsed returnto as %s", returnto);
+                    "In post_read_request; parsed returnto as %s", returnto);
 
       /* verify the assertion... */
       yajl_val parsed_result = NULL;
@@ -707,10 +707,10 @@ static int processAssertionFormSubmit(request_rec *r, BrowserIDConfigRec *conf)
             return DECLINED;
           }
           ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG 
-            "In post_read_request; parsed JSON from verification server: %s", assertionResult);
+                        "In post_read_request; parsed JSON from verification server: %s", assertionResult);
         } else {
           ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG
-            "Unable to verify assertion; communication error with verification server");
+                        "Unable to verify assertion; communication error with verification server");
           return DECLINED;
         }
       } else {
@@ -746,7 +746,7 @@ static int processAssertionFormSubmit(request_rec *r, BrowserIDConfigRec *conf)
         yajl_val foundEmail = yajl_tree_get(parsed_result, (const char**)parsePath, yajl_t_any);
 
         /** XXX if we don't have an email, something went wrong.  Should pull the error code properly!  This will
-        *  probably require refactoring this function since the local path is different.  ***/
+         *  probably require refactoring this function since the local path is different.  ***/
         if (!foundEmail || foundEmail->type != yajl_t_string) {
           ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG "Error parsing BrowserID login: no email in payload");
           return DECLINED;
@@ -761,7 +761,7 @@ static int processAssertionFormSubmit(request_rec *r, BrowserIDConfigRec *conf)
       } 
     }
   } else {
-   ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG "In post_read_request; this is a POST - skipping it for now");
+    ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG "In post_read_request; this is a POST - skipping it for now");
   }  
   return DECLINED;
 }
@@ -769,8 +769,8 @@ static int processAssertionFormSubmit(request_rec *r, BrowserIDConfigRec *conf)
 static int processLogout(request_rec *r, BrowserIDConfigRec *conf)
 {
   apr_table_set(r->err_headers_out, "Set-Cookie", 
-    apr_psprintf(r->pool, "%s=; Path=/; Expires=Thu, 01-Jan-1970 00:00:01 GMT", 
-      conf->cookieName));
+                apr_psprintf(r->pool, "%s=; Path=/; Expires=Thu, 01-Jan-1970 00:00:01 GMT", 
+                             conf->cookieName));
 
   if (r->args) {
     if ( strlen(r->args) > 16384 ) {
@@ -798,20 +798,20 @@ static int processLogout(request_rec *r, BrowserIDConfigRec *conf)
  */
 static int Auth_browserid_fixups(request_rec *r)
 {
-    BrowserIDConfigRec *conf=NULL;
+  BrowserIDConfigRec *conf=NULL;
 
-    /* get apache config */
-    conf = ap_get_module_config(r->per_dir_config, &mod_auth_browserid_module);
+  /* get apache config */
+  conf = ap_get_module_config(r->per_dir_config, &mod_auth_browserid_module);
 
-    if (conf->submitPath && !strcmp(r->uri, conf->submitPath)) {
-      return processAssertionFormSubmit(r, conf);
-    }
-    else if (conf->logoutPath && !strcmp(r->uri, conf->logoutPath)) {
-      return processLogout(r, conf);
-    }
+  if (conf->submitPath && !strcmp(r->uri, conf->submitPath)) {
+    return processAssertionFormSubmit(r, conf);
+  }
+  else if (conf->logoutPath && !strcmp(r->uri, conf->logoutPath)) {
+    return processLogout(r, conf);
+  }
     
-    /* otherwise we don't care */
-    return DECLINED;
+  /* otherwise we don't care */
+  return DECLINED;
 }
 
 
@@ -820,9 +820,9 @@ static int Auth_browserid_fixups(request_rec *r)
  **************************************************/
 static void register_hooks(apr_pool_t *p)
 {
-    ap_hook_check_user_id(Auth_browserid_check_cookie, NULL, NULL, APR_HOOK_FIRST);
-    ap_hook_auth_checker(Auth_browserid_check_auth, NULL, NULL, APR_HOOK_FIRST);
-    ap_hook_fixups(Auth_browserid_fixups, NULL, NULL, APR_HOOK_FIRST);
+  ap_hook_check_user_id(Auth_browserid_check_cookie, NULL, NULL, APR_HOOK_FIRST);
+  ap_hook_auth_checker(Auth_browserid_check_auth, NULL, NULL, APR_HOOK_FIRST);
+  ap_hook_fixups(Auth_browserid_fixups, NULL, NULL, APR_HOOK_FIRST);
 }
 
 /************************************************************************************
@@ -830,68 +830,77 @@ static void register_hooks(apr_pool_t *p)
  ************************************************************************************/
 static void *create_browserid_config(apr_pool_t *p, char *d)
 {
-    BrowserIDConfigRec *conf = apr_palloc(p, sizeof(*conf));
+  BrowserIDConfigRec *conf = apr_palloc(p, sizeof(*conf));
 
-    conf->cookieName = apr_pstrdup(p,"BrowserID");
-    conf->submitPath = "/mod_browserid_submit";
-    conf->serverSecret = "BrowserIDSecret";
-    conf->logoutPath = NULL;
-    conf->authoritative = 0;  /* not by default */
-    conf->authBasicFix = 0;  /* do not fix header for php auth by default */
-    conf->forwardedRequestHeader = NULL; /* pass the authenticated user, signed, as an HTTP header */
-    return conf;
+  conf->cookieName = apr_pstrdup(p,"BrowserID");
+  conf->submitPath = "/mod_browserid_submit";
+  conf->serverSecret = "BrowserIDSecret";
+  conf->logoutPath = NULL;
+  conf->authoritative = 0;  /* not by default */
+  conf->authBasicFix = 0;  /* do not fix header for php auth by default */
+  conf->forwardedRequestHeader = NULL; /* pass the authenticated user, signed, as an HTTP header */
+  return conf;
 }
 
 /* apache config fonction of the module */
 static const command_rec Auth_browserid_cmds[] =
 {
-    AP_INIT_TAKE1 ("AuthBrowserIDSetHTTPHeader", ap_set_string_slot,
-     (void *)APR_OFFSETOF(BrowserIDConfigRec, forwardedRequestHeader),
-     OR_AUTHCFG, "Set to 'yes' to forward a signed HTTP header containing the verified identity; set to 'no' by default"),
+  AP_INIT_TAKE1 (
+    "AuthBrowserIDSetHTTPHeader", ap_set_string_slot,
+    (void *)APR_OFFSETOF(BrowserIDConfigRec, forwardedRequestHeader),
+    OR_AUTHCFG, "Set to 'yes' to forward a signed HTTP header containing the verified identity; set to 'no' by default"),
 
-    AP_INIT_TAKE1("AuthBrowserIDCookieName", ap_set_string_slot,
-     (void *)APR_OFFSETOF(BrowserIDConfigRec, cookieName),
-     OR_AUTHCFG, "Name of cookie to set"),
+  AP_INIT_TAKE1(
+    "AuthBrowserIDCookieName", ap_set_string_slot,
+    (void *)APR_OFFSETOF(BrowserIDConfigRec, cookieName),
+    OR_AUTHCFG, "Name of cookie to set"),
 
-    AP_INIT_FLAG ("AuthBrowserIDAuthoritative", ap_set_flag_slot,
-     (void *)APR_OFFSETOF(BrowserIDConfigRec, authoritative),
-     OR_AUTHCFG, "Set to 'yes' to allow access control to be passed along to lower modules; set to 'no' by default"),
+  AP_INIT_FLAG (
+    "AuthBrowserIDAuthoritative", ap_set_flag_slot,
+    (void *)APR_OFFSETOF(BrowserIDConfigRec, authoritative),
+    OR_AUTHCFG, "Set to 'yes' to allow access control to be passed along to lower modules; set to 'no' by default"),
 
-    AP_INIT_FLAG ("AuthBrowserIDSimulateAuthBasic", ap_set_flag_slot,
-     (void *)APR_OFFSETOF(BrowserIDConfigRec, authBasicFix),
-     OR_AUTHCFG, "Set to 'yes' to enable creation of a synthetic Basic Authorization header containing the username"),
+  AP_INIT_FLAG (
+    "AuthBrowserIDSimulateAuthBasic", ap_set_flag_slot,
+    (void *)APR_OFFSETOF(BrowserIDConfigRec, authBasicFix),
+    OR_AUTHCFG, "Set to 'yes' to enable creation of a synthetic Basic Authorization header containing the username"),
 
-    AP_INIT_TAKE1 ("AuthBrowserIDSubmitPath", ap_set_string_slot,
-     (void *)APR_OFFSETOF(BrowserIDConfigRec, submitPath),
-     OR_AUTHCFG, "Path to which login forms will be submitted.  Form must contain a field named 'assertion'"),
+  AP_INIT_TAKE1 (
+    "AuthBrowserIDSubmitPath", ap_set_string_slot,
+    (void *)APR_OFFSETOF(BrowserIDConfigRec, submitPath),
+    OR_AUTHCFG, "Path to which login forms will be submitted.  Form must contain a field named 'assertion'"),
 
-    AP_INIT_TAKE1 ("AuthBrowserIDLogoutPath", ap_set_string_slot,
-     (void *)APR_OFFSETOF(BrowserIDConfigRec, logoutPath),
-     OR_AUTHCFG, "Path to which logout requests will be submitted.  An optional 'returnto' parameter will be used for a redirection, if provided."),
+  AP_INIT_TAKE1 (
+    "AuthBrowserIDLogoutPath", ap_set_string_slot,
+    (void *)APR_OFFSETOF(BrowserIDConfigRec, logoutPath),
+    OR_AUTHCFG, "Path to which logout requests will be submitted.  An optional 'returnto' parameter will be used for a redirection, if provided."),
 
-    AP_INIT_TAKE1 ("AuthBrowserIDVerificationServerURL", ap_set_string_slot,
-     (void *)APR_OFFSETOF(BrowserIDConfigRec, verificationServerURL),
-     OR_AUTHCFG, "URL of the BrowserID verification server."),
+  AP_INIT_TAKE1 (
+    "AuthBrowserIDVerificationServerURL", ap_set_string_slot,
+    (void *)APR_OFFSETOF(BrowserIDConfigRec, verificationServerURL),
+    OR_AUTHCFG, "URL of the BrowserID verification server."),
 
-    AP_INIT_FLAG ("AuthBrowserIDVerifyLocally", ap_set_flag_slot,
-     (void *)APR_OFFSETOF(BrowserIDConfigRec, verifyLocally),
-     OR_AUTHCFG, "Set to 'yes' to verify assertions locally; ignored if VerificationServerURL is set"),
+  AP_INIT_FLAG (
+    "AuthBrowserIDVerifyLocally", ap_set_flag_slot,
+    (void *)APR_OFFSETOF(BrowserIDConfigRec, verifyLocally),
+    OR_AUTHCFG, "Set to 'yes' to verify assertions locally; ignored if VerificationServerURL is set"),
 
-    AP_INIT_TAKE1 ("AuthBrowserIDSecret", ap_set_string_slot,
-     (void *)APR_OFFSETOF(BrowserIDConfigRec, serverSecret),
-     OR_AUTHCFG, "Server secret for authentication cookie."),
+  AP_INIT_TAKE1 (
+    "AuthBrowserIDSecret", ap_set_string_slot,
+    (void *)APR_OFFSETOF(BrowserIDConfigRec, serverSecret),
+    OR_AUTHCFG, "Server secret for authentication cookie."),
 
-    {NULL}
+  {NULL}
 };
 
 /* apache module structure */
 module AP_MODULE_DECLARE_DATA mod_auth_browserid_module =
 {
-    STANDARD20_MODULE_STUFF,
-    create_browserid_config,    /* dir config creator */
-    NULL,                       /* dir merger --- default is to override */
-    NULL,                       /* server config */
-    NULL,                       /* merge server config */
-    Auth_browserid_cmds,        /* command apr_table_t */
-    register_hooks              /* register hooks */
+  STANDARD20_MODULE_STUFF,
+  create_browserid_config,    /* dir config creator */
+  NULL,                       /* dir merger --- default is to override */
+  NULL,                       /* server config */
+  NULL,                       /* merge server config */
+  Auth_browserid_cmds,        /* command apr_table_t */
+  register_hooks              /* register hooks */
 };
