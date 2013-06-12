@@ -5,8 +5,8 @@ endif
 MY_LDFLAGS=-lcurl -lyajl
 # Note that gcc flags are passed through apxs, so preface with -Wc
 MY_CFLAGS=-Wc,-I. -Wc,-Wall -Wc,-g
-SRCS=src/mod_auth_browserid.c src/cookie.c
-HDRS=src/cookie.h src/defines.h src/config.h
+SRCS=src/mod_auth_browserid.c src/cookie.c src/verify.c
+HDRS=src/cookie.h src/defines.h src/config.h src/verify.h
 
 .SUFFIXES: .c .o .la
 
