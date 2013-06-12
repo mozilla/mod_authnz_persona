@@ -23,6 +23,10 @@
  * public domain.
  */
 
+#include "defines.h"
+#include "cookie.h"
+#include "config.h"
+
 #include <stdio.h>
 #include <string.h>
 #define APR_WANT_STRFUNC
@@ -30,7 +34,6 @@
 #include "apr_strings.h"
 #include "apr_uuid.h"
 #include "apr_tables.h"
-#include "apr_sha1.h"
 
 #include "httpd.h"
 #include "http_config.h"
@@ -43,62 +46,10 @@
 #include <curl/curl.h>
 #include <curl/easy.h>
 
-#define ERRTAG "Auth_browserID: "
-#define VERSION "1.0.0"
-#define unless(c) if(!(c))
 
 /* apache module name */
 module AP_MODULE_DECLARE_DATA mod_auth_browserid_module;
 
-/* config structure */
-typedef struct {
-  char *cookieName;
-  int 	authoritative;
-  int 	authBasicFix;
-  char  *forwardedRequestHeader;
-  char *submitPath;
-  char *logoutPath;
-  char *verificationServerURL;
-  int   verifyLocally;
-  char *serverSecret;
-} BrowserIDConfigRec;
-
-/* Look through the 'Cookie' headers for the indicated cookie; extract it
- * and URL-unescape it. Return the cookie on success, NULL on failure. */
-static char * extract_cookie(request_rec *r, const char *szCookie_name) 
-{
-  char *szRaw_cookie_start=NULL, *szRaw_cookie_end;
-  char *szCookie;
-  /* get cookie string */
-  char*szRaw_cookie = (char*)apr_table_get( r->headers_in, "Cookie");
-  unless(szRaw_cookie) return 0;
-
-  /* loop to search cookie name in cookie header */
-  do {
-    ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "Checking cookie %s, looking for %s", szRaw_cookie, szCookie_name);
-
-    /* search cookie name in cookie string */
-    unless (szRaw_cookie =strstr(szRaw_cookie, szCookie_name)) return 0;
-    szRaw_cookie_start=szRaw_cookie;
-    /* search '=' */
-    unless (szRaw_cookie = strchr(szRaw_cookie, '=')) return 0;
-  } while (strncmp(szCookie_name,szRaw_cookie_start,szRaw_cookie-szRaw_cookie_start)!=0);
-
-  /* skip '=' */
-  szRaw_cookie++;
-
-  /* search end of cookie name value: ';' or end of cookie strings */
-  unless ((szRaw_cookie_end = strchr(szRaw_cookie, ';')) || (szRaw_cookie_end = strchr(szRaw_cookie, '\0'))) return 0;
-
-  /* dup the value string found in apache pool and set the result pool ptr to szCookie ptr */
-  unless (szCookie = apr_pstrndup(r->pool, szRaw_cookie, szRaw_cookie_end-szRaw_cookie)) return 0;
-  /* unescape the value string */ 
-  unless (ap_unescape_url(szCookie) == 0) return 0;
-
-  ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "finished cookie scan, returning %s", szCookie);
-
-  return szCookie;
-}
 
 /** Given a filename and username, open the file (using normal Apache
  * configuration directory search rules) and search for the given username
@@ -147,7 +98,7 @@ static void fix_headers_in(request_rec *r,char*szPassword)
 
   if (apr_table_get(r->headers_in,"Authorization")==NULL) 
   {
-    ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "fixing apache Authorization header for this request using user: %s",r->user);
+    ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, ERRTAG "fixing apache Authorization header for this request using user: %s",r->user);
 
     /* concat username and ':' */
     if (szPassword!=NULL) szUser=(char*)apr_pstrcat(r->pool,r->user,":",szPassword,NULL);
@@ -173,49 +124,6 @@ static void fix_headers_in(request_rec *r,char*szPassword)
   return;
 }
 
-/** Generates a signature with the given inputs, returning a Base64-encoded
- * signature value. */
-static char *generateSignature(request_rec *r, BrowserIDConfigRec *conf, char *userAddress)
-{
-  apr_sha1_ctx_t context;
-  apr_sha1_init(&context);
-  apr_sha1_update(&context, userAddress, strlen(userAddress));
-  apr_sha1_update(&context, conf->serverSecret, strlen(conf->serverSecret));
-  unsigned char digest[20];
-  apr_sha1_final(digest, &context);
-
-  char * digest64 = apr_palloc(r->pool, apr_base64_encode_len(20));
-  apr_base64_encode(digest64, (char*)digest, 20);
-  return digest64;
-}
-
-/* Check the cookie and make sure it is valid */
-static int validateCookie(request_rec *r, BrowserIDConfigRec *conf, char *szCookieValue)
-{
-  /* split at | */
-  char *sig = NULL;
-  char *addr = apr_strtok(szCookieValue, "|", &sig);
-  if (!addr) {
-    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "malformed BrowserID cookie");
-    return 1;
-  }
-
-  char *digest64 = generateSignature(r, conf, addr);
-  ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "Got cookie: email is %s; expected digest is %s; got digest %s",
-                addr, digest64, sig);
-
-  /* paranoia indicates that we should use a time-invariant compare here */
-  if (strcmp(digest64, sig)) {
-    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "invalid BrowserID cookie");
-    free(digest64);
-    return 1;
-  }
-
-  /* Cookie is good: set r->user */
-  r->user = (char*)addr;
-  return 0;
-}
-
 /**************************************************
  * Authentication phase
  *
@@ -226,12 +134,25 @@ static int Auth_browserid_check_cookie(request_rec *r)
   BrowserIDConfigRec *conf=NULL;
   char *szCookieValue=NULL;
   char *szRemoteIP=NULL;
+  const char *assertion=NULL;
 
-  ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG  "ap_hook_check_user_id in - Auth_browserid_check_cookie");
+  ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth_browserid_check_cookie");
 
   /* get apache config */
   conf = ap_get_module_config(r->per_dir_config, &mod_auth_browserid_module);
 
+
+  /* Step 1:  If this is an authentication request providing an assertion, let's process it */
+  assertion = apr_table_get(r->headers_in, "X-BrowserID-Assertion");
+  if (assertion) {
+    ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG
+                  "Assertion recieved '%s'", assertion);
+    // implement me!
+    return HTTP_INTERNAL_SERVER_ERROR;
+  }
+
+  /* XXX: is this really right?  at what point will the cookie be checked?  This looks like a bug.
+   *  is mis-implemented here - it being set to no should not prevent us from checking the cookie */
   unless(conf->authoritative)
     return DECLINED;
 
@@ -247,7 +168,7 @@ static int Auth_browserid_check_cookie(request_rec *r)
   }
 
   /* get cookie who are named cookieName */
-  unless(szCookieValue = extract_cookie(r, conf->cookieName))
+  unless(szCookieValue = extractCookie(r, conf->cookieName))
   {
     ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "BrowserID cookie not found; not authorized! RemoteIP:%s",szRemoteIP);
     return HTTP_UNAUTHORIZED;
@@ -291,7 +212,9 @@ static int Auth_browserid_check_auth(request_rec *r)
   const char *szRequireLine;
   char *szFileName;
   char *szRequire_cmd;
-  
+
+  ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth_browserid_check_auth");
+
   /* get apache config */
   conf = ap_get_module_config(r->per_dir_config, &mod_auth_browserid_module);
 
@@ -351,8 +274,6 @@ static int Auth_browserid_check_auth(request_rec *r)
   return HTTP_FORBIDDEN;
 }
 
-
-
 /* Helper struct for CURL response */
 struct MemoryStruct {
   char *memory;
@@ -360,7 +281,7 @@ struct MemoryStruct {
   size_t realsize;
   request_rec *r;
 };
- 
+
 /** Callback function for streaming CURL response */
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
@@ -456,16 +377,6 @@ apr_table_t *parseArgs(request_rec *r, char *argStr)
   return vars;
 }
 
-/** Create a session cookie with a given identity */
-static void createSessionCookie(request_rec *r, BrowserIDConfigRec *conf, char *identity)
-{
-  char *digest64 = generateSignature(r, conf, identity);
-
-  /* syntax of cookie is identity|signature */
-  apr_table_set(r->err_headers_out, "Set-Cookie",
-                apr_psprintf(r->pool, "%s=%s|%s; Path=/",
-                             conf->cookieName, identity, digest64));
-}
 
 /* Called from the fixup_handler when we receive a form submission.
  *
@@ -596,6 +507,8 @@ static int Auth_browserid_fixups(request_rec *r)
 {
   BrowserIDConfigRec *conf=NULL;
 
+  ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth_browserid_fixups");
+
   /* get apache config */
   conf = ap_get_module_config(r->per_dir_config, &mod_auth_browserid_module);
 
@@ -616,6 +529,7 @@ static int Auth_browserid_fixups(request_rec *r)
  **************************************************/
 static void register_hooks(apr_pool_t *p)
 {
+  // these hooks are are executed in order, first is first.
   ap_hook_check_user_id(Auth_browserid_check_cookie, NULL, NULL, APR_HOOK_FIRST);
   ap_hook_auth_checker(Auth_browserid_check_auth, NULL, NULL, APR_HOOK_FIRST);
   ap_hook_fixups(Auth_browserid_fixups, NULL, NULL, APR_HOOK_FIRST);
