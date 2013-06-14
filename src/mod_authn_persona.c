@@ -50,8 +50,7 @@
 
 
 /* apache module name */
-module AP_MODULE_DECLARE_DATA mod_auth_browserid_module;
-
+module AP_MODULE_DECLARE_DATA authn_persona_module;
 
 /** Given a filename and username, open the file (using normal Apache
  * configuration directory search rules) and search for the given username
@@ -140,7 +139,7 @@ static int Auth_browserid_check_cookie(request_rec *r)
   ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth_browserid_check_cookie");
 
   /* get apache config */
-  conf = ap_get_module_config(r->per_dir_config, &mod_auth_browserid_module);
+  conf = ap_get_module_config(r->per_dir_config, &authn_persona_module);
 
   /* If this is an authentication request providing an assertion, let's process it */
   assertion = apr_table_get(r->headers_in, "X-BrowserID-Assertion");
@@ -227,7 +226,7 @@ static int Auth_browserid_check_auth(request_rec *r)
   ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth_browserid_check_auth");
 
   /* get apache config */
-  conf = ap_get_module_config(r->per_dir_config, &mod_auth_browserid_module);
+  conf = ap_get_module_config(r->per_dir_config, &authn_persona_module);
 
   /* check if this module is authoritative */
   unless(conf->authoritative)
@@ -392,7 +391,7 @@ static int Auth_browserid_fixups(request_rec *r)
   ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth_browserid_fixups");
 
   /* get apache config */
-  conf = ap_get_module_config(r->per_dir_config, &mod_auth_browserid_module);
+  conf = ap_get_module_config(r->per_dir_config, &authn_persona_module);
 
   if (conf->submitPath && !strcmp(r->uri, conf->submitPath)) {
     return processAssertionFormSubmit(r, conf);
@@ -486,7 +485,7 @@ static const command_rec Auth_browserid_cmds[] =
 };
 
 /* apache module structure */
-module AP_MODULE_DECLARE_DATA mod_auth_browserid_module =
+module AP_MODULE_DECLARE_DATA authn_persona_module =
 {
   STANDARD20_MODULE_STUFF,
   create_browserid_config,    /* dir config creator */
