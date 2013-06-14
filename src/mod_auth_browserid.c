@@ -70,12 +70,11 @@ static int user_in_file(request_rec *r, char *username, char *filename)
 
   int found = 0;
   while (!(ap_cfg_getline(l, MAX_STRING_LEN, f))) {
-    
     /* Skip # or blank lines. */
     if ((l[0] == '#') || (!l[0])) {
       continue;
     }
-    
+
     if (!strcmp(username, l)) {
       found = 1;
       break;
@@ -156,8 +155,7 @@ static int Auth_browserid_check_cookie(request_rec *r)
       // 1. set cookie
       // 2. set response code
       // 3. return DONE
-      apr_table_set(r->headers_out,"Location", returnto);
-      return DONE;
+      // XXX: write me
     }
 
     // implement me!
