@@ -122,10 +122,10 @@ static char *verifyAssertionRemote(request_rec *r, BrowserIDConfigRec *conf, cha
   return chunk.memory;
 }
 
-/* Called from the fixup_handler when we receive a form submission.
+/*
+ * process an assertion using the hosted verifier.
  *
- * XXX handle POST submissions correctly - this will take some work,
- *     as we have to loop to handle chunked submissions
+ * TODO: local verification
  */
 int processAssertion(request_rec *r, BrowserIDConfigRec *conf, const char * assertion)
 {

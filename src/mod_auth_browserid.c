@@ -143,12 +143,23 @@ static int Auth_browserid_check_cookie(request_rec *r)
   /* get apache config */
   conf = ap_get_module_config(r->per_dir_config, &mod_auth_browserid_module);
 
-
-  /* Step 1:  If this is an authentication request providing an assertion, let's process it */
+  /* If this is an authentication request providing an assertion, let's process it */
   assertion = apr_table_get(r->headers_in, "X-BrowserID-Assertion");
   if (assertion) {
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG
                   "Assertion recieved '%s'", assertion);
+
+    int rez = processAssertion(r, conf, assertion);
+
+    if (rez == OK) {
+      /* redirect to the requested resource */
+      // 1. set cookie
+      // 2. set response code
+      // 3. return DONE
+      apr_table_set(r->headers_out,"Location", returnto);
+      return DONE;
+    }
+
     // implement me!
     return HTTP_INTERNAL_SERVER_ERROR;
   }
@@ -249,8 +260,8 @@ static int Auth_browserid_check_auth(request_rec *r)
     if (!strcmp("valid-user",szRequire_cmd)) {
       ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "Require Cmd valid-user");
       return OK;
-    } 
-    /* check the required user */ 
+    }
+    /* check the required user */
     else if (!strcmp("user",szRequire_cmd)) {
       szUser = ap_getword_conf(r->pool, &szRequireLine);
       if (strcmp(r->user, szUser)) {
@@ -348,8 +359,8 @@ static int processAssertionFormSubmit(request_rec *r, BrowserIDConfigRec *conf)
 
 static int processLogout(request_rec *r, BrowserIDConfigRec *conf)
 {
-  apr_table_set(r->err_headers_out, "Set-Cookie", 
-                apr_psprintf(r->pool, "%s=; Path=/; Expires=Thu, 01-Jan-1970 00:00:01 GMT", 
+  apr_table_set(r->err_headers_out, "Set-Cookie",
+                apr_psprintf(r->pool, "%s=; Path=/; Expires=Thu, 01-Jan-1970 00:00:01 GMT",
                              conf->cookieName));
 
   if (r->args) {
