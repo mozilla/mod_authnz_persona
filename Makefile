@@ -7,18 +7,30 @@ MY_LDFLAGS=-lcurl -lyajl
 MY_CFLAGS=-Wc,-I. -Wc,-Wall -Wc,-g
 SRCS=src/mod_authn_persona.c src/cookie.c src/verify.c
 HDRS=src/cookie.h src/defines.h src/config.h src/verify.h
+BUILDDIR := build
 
 .SUFFIXES: .c .o .la
 
-build/.libs/mod_authn_persona.so: $(SRCS) $(HDRS)
-	@mkdir -p build/
-	@cd build && for file in $^ ; do ln -sf ../$$file . ; done
-	@cd build && $(APXS_PATH) $(MY_LDFLAGS) $(MY_CFLAGS) -c $(subst src/,,$(SRCS))
-
 all:  build/.libs/mod_authn_persona.so
 
-install: build/mod_authn_persona.la
-	$(APXS_PATH) -i $<
+.PHONY: builddir
+builddir: build
+
+$(BUILDDIR):
+	@mkdir -p $@
+
+$(BUILDDIR)/bin2c: tools/bin2c.c | $(BUILDDIR)
+	@gcc -Wall -g -o $(BUILDDIR)/bin2c $<
+
+$(BUILDDIR)/signin_page.h: src/signin.html $(BUILDDIR)/bin2c | $(BUILDDIR) 
+	@$(BUILDDIR)/bin2c $^ > $@
+
+$(BUILDDIR)/.libs/mod_authn_persona.so: $(SRCS) $(HDRS) $(BUILDDIR)/signin_page.h
+	@cd $(BUILDDIR) && for file in $(SRCS) $(HDRS) ; do ln -sf ../$$file . ; done
+	@cd $(BUILDDIR) && $(APXS_PATH) $(MY_LDFLAGS) $(MY_CFLAGS) -c $(subst src/,,$(SRCS))
+
+install: all
+	$(APXS_PATH) -i $(BUILDDIR)/mod_authn_persona.la
 
 clean:
-	-rm -rf build
+	-rm -rf $(BUILDDIR)
