@@ -142,7 +142,7 @@ static int Auth_browserid_check_cookie(request_rec *r)
   conf = ap_get_module_config(r->per_dir_config, &authn_persona_module);
 
   /* If this is an authentication request providing an assertion, let's process it */
-  assertion = apr_table_get(r->headers_in, "X-BrowserID-Assertion");
+  assertion = apr_table_get(r->headers_in, "X-Persona-Assertion");
   if (assertion) {
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG
                   "Assertion recieved '%s'", assertion);
@@ -167,8 +167,8 @@ static int Auth_browserid_check_cookie(request_rec *r)
     return DECLINED;
 
   ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "AuthType are '%s'", ap_auth_type(r));
-  unless(strncmp("BrowserID",ap_auth_type(r),9)==0) {
-    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth type must be 'BrowserID'");
+  unless(strncmp("Persona",ap_auth_type(r),9)==0) {
+    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth type must be 'Persona'");
     return HTTP_UNAUTHORIZED;
   }
 
@@ -180,14 +180,14 @@ static int Auth_browserid_check_cookie(request_rec *r)
   /* get cookie who are named cookieName */
   unless(szCookieValue = extractCookie(r, conf->cookieName))
   {
-    ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "BrowserID cookie not found; not authorized! RemoteIP:%s",szRemoteIP);
+    ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Persona cookie not found; not authorized! RemoteIP:%s",szRemoteIP);
     return HTTP_UNAUTHORIZED;
   }
   ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "got cookie; value is %s", szCookieValue);
 
   /* Check cookie validity */
   if (validateCookie(r, conf, szCookieValue)) {
-    ap_log_rerror(APLOG_MARK, APLOG_WARNING|APLOG_NOERRNO, 0, r, ERRTAG "Invalid BrowserID cookie: %s", szCookieValue);
+    ap_log_rerror(APLOG_MARK, APLOG_WARNING|APLOG_NOERRNO, 0, r, ERRTAG "Invalid Persona cookie: %s", szCookieValue);
     return HTTP_UNAUTHORIZED;
   }
 
@@ -195,7 +195,7 @@ static int Auth_browserid_check_cookie(request_rec *r)
   apr_table_setn(r->subprocess_env,"REMOTE_USER",r->user);
 
   /* log authorisation ok */
-  ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "BrowserID authentication ok");
+  ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "Persona authentication ok");
 
   /* fix http header for php */
   if (conf->authBasicFix) fix_headers_in(r,"browserid");
