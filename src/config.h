@@ -4,11 +4,7 @@
 /* config structure */
 typedef struct {
   char *cookieName;
-  int 	authoritative;
-  int 	authBasicFix;
   char  *forwardedRequestHeader;
-  char *submitPath;
-  char *logoutPath;
   char *verificationServerURL;
   int   verifyLocally;
   char *serverSecret;
