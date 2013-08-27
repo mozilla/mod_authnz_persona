@@ -179,7 +179,6 @@ static int Auth_browserid_check_cookie(request_rec *r)
  **************************************************/
 static int Auth_browserid_check_auth(request_rec *r)
 {
-  BrowserIDConfigRec *conf=NULL;
   char *szUser;
   const apr_array_header_t *reqs_arr=NULL;
   require_line *reqs=NULL;
@@ -189,9 +188,6 @@ static int Auth_browserid_check_auth(request_rec *r)
   char *szRequire_cmd;
 
   ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth_browserid_check_auth");
-
-  /* get apache config */
-  conf = ap_get_module_config(r->per_dir_config, &authn_persona_module);
 
   /* get require line */
   reqs_arr = ap_requires(r);
