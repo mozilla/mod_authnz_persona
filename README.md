@@ -4,8 +4,8 @@ Building and Installing
 =======================
 
 ```
-git clone https://github.com/mozilla/mod_browserid.git
-cd mod_browserid
+git clone https://github.com/lloyd/mod_authn_persona.git
+cd mod_authn_persona
 make
 sudo make install
 ```
