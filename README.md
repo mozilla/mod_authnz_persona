@@ -77,7 +77,7 @@ Sample Configuration
 httpd.conf:
 
 ```
-  LoadModule mod_auth_browserid_module modules/mod_auth_browserid.so
+  LoadModule authn_persona_module modules/authn_persona_module.so
 
   <Directory /usr/local/apache2/htdocs/id_login >
   AuthBrowserIDCookieName myauthcookie
