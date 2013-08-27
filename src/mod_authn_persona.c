@@ -129,13 +129,8 @@ static int Auth_browserid_check_cookie(request_rec *r)
     return HTTP_UNAUTHORIZED;
   }
 
-  unless(conf->cookieName) {
-    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "No Auth_browserid_CookieName specified");
-    return HTTP_UNAUTHORIZED;
-  }
-
-  /* get cookie who are named cookieName */
-  unless(szCookieValue = extractCookie(r, conf->cookieName))
+  /* get cookie who are named PERSONA_COOKIE_NAME */
+  unless(szCookieValue = extractCookie(r, PERSONA_COOKIE_NAME))
   {
     ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Persona cookie not found; not authorized! RemoteIP:%s",szRemoteIP);
 
@@ -276,7 +271,7 @@ static int processLogout(request_rec *r, BrowserIDConfigRec *conf)
 {
   apr_table_set(r->err_headers_out, "Set-Cookie",
                 apr_psprintf(r->pool, "%s=; Path=/; Expires=Thu, 01-Jan-1970 00:00:01 GMT",
-                             conf->cookieName));
+                             PERSONA_COOKIE_NAME));
 
   if (r->args) {
     if ( strlen(r->args) > 16384 ) {
@@ -312,7 +307,6 @@ static void *create_browserid_config(apr_pool_t *p, char *d)
   BrowserIDConfigRec *conf = apr_palloc(p, sizeof(*conf));
   memset((void *) conf, 0, sizeof(*conf));
 
-  conf->cookieName = apr_pstrdup(p,"BrowserID");
   conf->serverSecret = "BrowserIDSecret";
   conf->forwardedRequestHeader = NULL; /* pass the authenticated user, signed, as an HTTP header */
 
@@ -326,11 +320,6 @@ static const command_rec Auth_browserid_cmds[] =
     "AuthBrowserIDSetHTTPHeader", ap_set_string_slot,
     (void *)APR_OFFSETOF(BrowserIDConfigRec, forwardedRequestHeader),
     OR_AUTHCFG, "Set to 'yes' to forward a signed HTTP header containing the verified identity; set to 'no' by default"),
-
-  AP_INIT_TAKE1(
-    "AuthBrowserIDCookieName", ap_set_string_slot,
-    (void *)APR_OFFSETOF(BrowserIDConfigRec, cookieName),
-    OR_AUTHCFG, "Name of cookie to set"),
 
   AP_INIT_FLAG (
     "AuthBrowserIDVerifyLocally", ap_set_flag_slot,

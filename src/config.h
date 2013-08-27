@@ -3,7 +3,6 @@
 
 /* config structure */
 typedef struct {
-  char *cookieName;
   char  *forwardedRequestHeader;
   int   verifyLocally;
   char *serverSecret;

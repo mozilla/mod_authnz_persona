@@ -129,6 +129,6 @@ void createSessionCookie(request_rec *r, BrowserIDConfigRec *conf, char *identit
   /* syntax of cookie is identity|signature */
   apr_table_set(r->err_headers_out, "Set-Cookie",
                 apr_psprintf(r->pool, "%s=%s|%s; Path=/",
-                             conf->cookieName, identity, digest64));
+                             PERSONA_COOKIE_NAME, identity, digest64));
 }
 
