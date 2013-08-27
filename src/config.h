@@ -4,7 +4,6 @@
 /* config structure */
 typedef struct {
   char  *forwardedRequestHeader;
-  int   verifyLocally;
   char *serverSecret;
 } BrowserIDConfigRec;
 

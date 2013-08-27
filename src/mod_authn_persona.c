@@ -321,11 +321,6 @@ static const command_rec Auth_browserid_cmds[] =
     (void *)APR_OFFSETOF(BrowserIDConfigRec, forwardedRequestHeader),
     OR_AUTHCFG, "Set to 'yes' to forward a signed HTTP header containing the verified identity; set to 'no' by default"),
 
-  AP_INIT_FLAG (
-    "AuthBrowserIDVerifyLocally", ap_set_flag_slot,
-    (void *)APR_OFFSETOF(BrowserIDConfigRec, verifyLocally),
-    OR_AUTHCFG, "Set to 'yes' to verify assertions locally; ignored if VerificationServerURL is set"),
-
   AP_INIT_TAKE1 (
     "AuthBrowserIDSecret", ap_set_string_slot,
     (void *)APR_OFFSETOF(BrowserIDConfigRec, serverSecret),
