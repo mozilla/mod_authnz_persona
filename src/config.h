@@ -5,7 +5,6 @@
 typedef struct {
   char *cookieName;
   char  *forwardedRequestHeader;
-  char *verificationServerURL;
   int   verifyLocally;
   char *serverSecret;
 } BrowserIDConfigRec;

@@ -82,13 +82,15 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
 static char *verifyAssertionRemote(request_rec *r, BrowserIDConfigRec *conf, char *assertionText)
 {
   CURL *curl = curl_easy_init();
-  curl_easy_setopt(curl, CURLOPT_URL, conf->verificationServerURL);
+
+  curl_easy_setopt(curl, CURLOPT_URL, PERSONA_DEFAULT_VERIFIER_URL);
   curl_easy_setopt(curl, CURLOPT_POST, 1);
 
-  ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r ,
-                ERRTAG  "Requeting verification with audience %s", r->server->server_hostname);
+  ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r,
+                ERRTAG  "Requesting verification with audience %s", r->server->server_hostname);
 
-  char *body = apr_psprintf(r->pool, "assertion=%s&audience=%s", 
+  // XXX: audience should be an origin, see docs or issue mozilla/browserid#82
+  char *body = apr_psprintf(r->pool, "assertion=%s&audience=%s",
                             assertionText, r->server->server_hostname);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body);
   /** XXX set certificate for SSL negotiation */
@@ -135,6 +137,7 @@ int processAssertion(request_rec *r, BrowserIDConfigRec *conf, const char * asse
   yajl_val parsed_result = NULL;
 
   char *assertionResult = verifyAssertionRemote(r, conf, (char*) assertion);
+
   if (assertionResult) {
     char errorBuffer[256];
     parsed_result = yajl_tree_parse(assertionResult, errorBuffer, 255);

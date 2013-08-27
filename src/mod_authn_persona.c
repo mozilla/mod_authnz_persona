@@ -105,7 +105,7 @@ static int Auth_browserid_check_cookie(request_rec *r)
   assertion = apr_table_get(r->headers_in, "X-Persona-Assertion");
   if (assertion) {
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG
-                  "Assertion recieved '%s'", assertion);
+                  "Assertion received '%s'", assertion);
 
     int rez = processAssertion(r, conf, assertion);
 
@@ -314,6 +314,7 @@ static void register_hooks(apr_pool_t *p)
 static void *create_browserid_config(apr_pool_t *p, char *d)
 {
   BrowserIDConfigRec *conf = apr_palloc(p, sizeof(*conf));
+  memset((void *) conf, 0, sizeof(*conf));
 
   conf->cookieName = apr_pstrdup(p,"BrowserID");
   conf->serverSecret = "BrowserIDSecret";
@@ -334,11 +335,6 @@ static const command_rec Auth_browserid_cmds[] =
     "AuthBrowserIDCookieName", ap_set_string_slot,
     (void *)APR_OFFSETOF(BrowserIDConfigRec, cookieName),
     OR_AUTHCFG, "Name of cookie to set"),
-
-  AP_INIT_TAKE1 (
-    "AuthBrowserIDVerificationServerURL", ap_set_string_slot,
-    (void *)APR_OFFSETOF(BrowserIDConfigRec, verificationServerURL),
-    OR_AUTHCFG, "URL of the BrowserID verification server."),
 
   AP_INIT_FLAG (
     "AuthBrowserIDVerifyLocally", ap_set_flag_slot,
