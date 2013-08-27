@@ -3,7 +3,6 @@
 
 /* config structure */
 typedef struct {
-  char  *forwardedRequestHeader;
   char *serverSecret;
 } BrowserIDConfigRec;
 

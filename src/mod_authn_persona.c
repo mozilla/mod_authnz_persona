@@ -306,21 +306,13 @@ static void *create_browserid_config(apr_pool_t *p, char *d)
 {
   BrowserIDConfigRec *conf = apr_palloc(p, sizeof(*conf));
   memset((void *) conf, 0, sizeof(*conf));
-
   conf->serverSecret = "BrowserIDSecret";
-  conf->forwardedRequestHeader = NULL; /* pass the authenticated user, signed, as an HTTP header */
-
   return conf;
 }
 
 /* apache config fonction of the module */
 static const command_rec Auth_browserid_cmds[] =
 {
-  AP_INIT_TAKE1 (
-    "AuthBrowserIDSetHTTPHeader", ap_set_string_slot,
-    (void *)APR_OFFSETOF(BrowserIDConfigRec, forwardedRequestHeader),
-    OR_AUTHCFG, "Set to 'yes' to forward a signed HTTP header containing the verified identity; set to 'no' by default"),
-
   AP_INIT_TAKE1 (
     "AuthBrowserIDSecret", ap_set_string_slot,
     (void *)APR_OFFSETOF(BrowserIDConfigRec, serverSecret),
