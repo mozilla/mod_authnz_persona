@@ -48,7 +48,7 @@ static char *generateSignature(request_rec *r, BrowserIDConfigRec *conf, char *u
   apr_sha1_ctx_t context;
   apr_sha1_init(&context);
   apr_sha1_update(&context, userAddress, strlen(userAddress));
-  apr_sha1_update(&context, conf->serverSecret, strlen(conf->serverSecret));
+  apr_sha1_update(&context, PERSONA_SERVER_SECRET, strlen(PERSONA_SERVER_SECRET));
   unsigned char digest[20];
   apr_sha1_final(digest, &context);
 

@@ -306,18 +306,12 @@ static void *create_browserid_config(apr_pool_t *p, char *d)
 {
   BrowserIDConfigRec *conf = apr_palloc(p, sizeof(*conf));
   memset((void *) conf, 0, sizeof(*conf));
-  conf->serverSecret = "BrowserIDSecret";
   return conf;
 }
 
 /* apache config fonction of the module */
 static const command_rec Auth_browserid_cmds[] =
 {
-  AP_INIT_TAKE1 (
-    "AuthBrowserIDSecret", ap_set_string_slot,
-    (void *)APR_OFFSETOF(BrowserIDConfigRec, serverSecret),
-    OR_AUTHCFG, "Server secret for authentication cookie."),
-
   {NULL}
 };
 
