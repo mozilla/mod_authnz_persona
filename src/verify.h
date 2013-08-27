@@ -28,7 +28,6 @@
 
 #include "defines.h"
 #include "cookie.h"
-#include "config.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -49,6 +48,6 @@
 #include <curl/curl.h>
 #include <curl/easy.h>
 
-int processAssertion(request_rec *r, BrowserIDConfigRec *conf, const char * assertion);
+int processAssertion(request_rec *r, const char * assertion);
 
 #endif

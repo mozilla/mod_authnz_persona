@@ -22,16 +22,14 @@
 
 #include <httpd.h>
 
-#include "config.h"
-
 /* Look through the 'Cookie' headers for the indicated cookie; extract it
  * and URL-unescape it. Return the cookie on success, NULL on failure. */
 char * extractCookie(request_rec *r, const char *szCookie_name);
 
 /* Check the cookie and make sure it is valid */
-int validateCookie(request_rec *r, BrowserIDConfigRec *conf, char *szCookieValue);
+int validateCookie(request_rec *r, char *szCookieValue);
 
 /** Create a session cookie with a given identity */
-void createSessionCookie(request_rec *r, BrowserIDConfigRec *conf, char *identity);
+void createSessionCookie(request_rec *r, char *identity);
 
 #endif

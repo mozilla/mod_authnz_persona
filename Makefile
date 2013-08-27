@@ -6,7 +6,7 @@ MY_LDFLAGS=-lcurl -lyajl
 # Note that gcc flags are passed through apxs, so preface with -Wc
 MY_CFLAGS=-Wc,-I. -Wc,-Wall -Wc,-g
 SRCS=src/mod_authn_persona.c src/cookie.c src/verify.c
-HDRS=src/cookie.h src/defines.h src/config.h src/verify.h
+HDRS=src/cookie.h src/defines.h src/verify.h
 BUILDDIR := build
 
 .SUFFIXES: .c .o .la

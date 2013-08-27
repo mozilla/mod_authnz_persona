@@ -28,7 +28,6 @@
 
 #include "defines.h"
 #include "cookie.h"
-#include "config.h"
 #include "verify.h"
 
 #include <stdio.h>
@@ -79,7 +78,7 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
 
 /* Pass the assertion to the verification service defined in the config,
  * and return the result to the caller */
-static char *verifyAssertionRemote(request_rec *r, BrowserIDConfigRec *conf, char *assertionText)
+static char *verifyAssertionRemote(request_rec *r, char *assertionText)
 {
   CURL *curl = curl_easy_init();
 
@@ -129,14 +128,14 @@ static char *verifyAssertionRemote(request_rec *r, BrowserIDConfigRec *conf, cha
  *
  * TODO: local verification
  */
-int processAssertion(request_rec *r, BrowserIDConfigRec *conf, const char * assertion)
+int processAssertion(request_rec *r, const char * assertion)
 {
   ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "Submission to BrowserID form handler");
 
   /* verify the assertion... */
   yajl_val parsed_result = NULL;
 
-  char *assertionResult = verifyAssertionRemote(r, conf, (char*) assertion);
+  char *assertionResult = verifyAssertionRemote(r, (char*) assertion);
 
   if (assertionResult) {
     char errorBuffer[256];
@@ -166,7 +165,7 @@ int processAssertion(request_rec *r, BrowserIDConfigRec *conf, const char * asse
       return DECLINED;
     }
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "In post_read_request; got email %s", foundEmail->u.string);
-    createSessionCookie(r, conf, foundEmail->u.string);
+    createSessionCookie(r, foundEmail->u.string);
 
     return OK;
   }

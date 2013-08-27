@@ -25,7 +25,6 @@
 
 #include "defines.h"
 #include "cookie.h"
-#include "config.h"
 #include "verify.h"
 #include "signin_page.h"
 
@@ -91,15 +90,11 @@ static int user_in_file(request_rec *r, char *username, char *filename)
  **************************************************/
 static int Auth_browserid_check_cookie(request_rec *r)
 {
-  BrowserIDConfigRec *conf=NULL;
   char *szCookieValue=NULL;
   char *szRemoteIP=NULL;
   const char *assertion=NULL;
 
   ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth_browserid_check_cookie");
-
-  /* get apache config */
-  conf = ap_get_module_config(r->per_dir_config, &authn_persona_module);
 
   /* If this is an authentication request providing an assertion, let's process it */
   assertion = apr_table_get(r->headers_in, "X-Persona-Assertion");
@@ -107,7 +102,7 @@ static int Auth_browserid_check_cookie(request_rec *r)
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG
                   "Assertion received '%s'", assertion);
 
-    int rez = processAssertion(r, conf, assertion);
+    int rez = processAssertion(r, assertion);
 
     if (rez == OK) {
       /* redirect to the requested resource */
@@ -143,7 +138,7 @@ static int Auth_browserid_check_cookie(request_rec *r)
   ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "got cookie; value is %s", szCookieValue);
 
   /* Check cookie validity */
-  if (validateCookie(r, conf, szCookieValue)) {
+  if (validateCookie(r, szCookieValue)) {
     ap_log_rerror(APLOG_MARK, APLOG_WARNING|APLOG_NOERRNO, 0, r, ERRTAG "Invalid Persona cookie: %s", szCookieValue);
 
     // XXX: ideally send a 401 here.
@@ -267,7 +262,7 @@ apr_table_t *parseArgs(request_rec *r, char *argStr)
   return vars;
 }
 
-static int processLogout(request_rec *r, BrowserIDConfigRec *conf)
+static int processLogout(request_rec *r)
 {
   apr_table_set(r->err_headers_out, "Set-Cookie",
                 apr_psprintf(r->pool, "%s=; Path=/; Expires=Thu, 01-Jan-1970 00:00:01 GMT",
@@ -299,30 +294,14 @@ static void register_hooks(apr_pool_t *p)
   ap_hook_auth_checker(Auth_browserid_check_auth, NULL, NULL, APR_HOOK_FIRST);
 }
 
-/************************************************************************************
- *  Apache CONFIG Phase:
- ************************************************************************************/
-static void *create_browserid_config(apr_pool_t *p, char *d)
-{
-  BrowserIDConfigRec *conf = apr_palloc(p, sizeof(*conf));
-  memset((void *) conf, 0, sizeof(*conf));
-  return conf;
-}
-
-/* apache config fonction of the module */
-static const command_rec Auth_browserid_cmds[] =
-{
-  {NULL}
-};
-
 /* apache module structure */
 module AP_MODULE_DECLARE_DATA authn_persona_module =
 {
   STANDARD20_MODULE_STUFF,
-  create_browserid_config,    /* dir config creator */
+  NULL,                       /* dir config creator */
   NULL,                       /* dir merger --- default is to override */
   NULL,                       /* server config */
   NULL,                       /* merge server config */
-  Auth_browserid_cmds,        /* command apr_table_t */
+  NULL,                       /* command apr_table_t */
   register_hooks              /* register hooks */
 };

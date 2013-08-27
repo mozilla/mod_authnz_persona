@@ -39,11 +39,10 @@
 
 #include "cookie.h"
 #include "defines.h"
-#include "config.h"
 
 /** Generates a signature with the given inputs, returning a Base64-encoded
  * signature value. */
-static char *generateSignature(request_rec *r, BrowserIDConfigRec *conf, char *userAddress)
+static char *generateSignature(request_rec *r, char *userAddress)
 {
   apr_sha1_ctx_t context;
   apr_sha1_init(&context);
@@ -95,7 +94,7 @@ char * extractCookie(request_rec *r, const char *szCookie_name)
 }
 
 /* Check the cookie and make sure it is valid */
-int validateCookie(request_rec *r, BrowserIDConfigRec *conf, char *szCookieValue)
+int validateCookie(request_rec *r, char *szCookieValue)
 {
   /* split at | */
   char *sig = NULL;
@@ -105,7 +104,7 @@ int validateCookie(request_rec *r, BrowserIDConfigRec *conf, char *szCookieValue
     return 1;
   }
 
-  char *digest64 = generateSignature(r, conf, addr);
+  char *digest64 = generateSignature(r, addr);
   ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "Got cookie: email is %s; expected digest is %s; got digest %s",
                 addr, digest64, sig);
 
@@ -122,13 +121,12 @@ int validateCookie(request_rec *r, BrowserIDConfigRec *conf, char *szCookieValue
 }
 
 /** Create a session cookie with a given identity */
-void createSessionCookie(request_rec *r, BrowserIDConfigRec *conf, char *identity)
+void createSessionCookie(request_rec *r, char *identity)
 {
-  char *digest64 = generateSignature(r, conf, identity);
+  char *digest64 = generateSignature(r, identity);
 
   /* syntax of cookie is identity|signature */
   apr_table_set(r->err_headers_out, "Set-Cookie",
                 apr_psprintf(r->pool, "%s=%s|%s; Path=/",
                              PERSONA_COOKIE_NAME, identity, digest64));
 }
-
