@@ -111,7 +111,6 @@ int validateCookie(request_rec *r, char *szCookieValue)
   /* paranoia indicates that we should use a time-invariant compare here */
   if (strcmp(digest64, sig)) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "invalid BrowserID cookie");
-    free(digest64);
     return 1;
   }
 
