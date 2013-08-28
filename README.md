@@ -12,7 +12,8 @@ make
 sudo make install
 ```
 
-(this assumes apxs is behaving properly on your system; set the APXS_PATH variable to your apxs or apxs2 as appropriate)
+(this assumes apxs is behaving properly on your system; set the
+APXS_PATH variable to your apxs or apxs2 as appropriate)
 
 # Configuration
 
@@ -36,8 +37,10 @@ Dependencies
 
 # Features
 
-* **zero configuration** - The module is designed with reasonable defaults, so you can simply drop it in
-* **automatic re-auth** - The module is designed to use short session cookies and automatically re-authenticate.
+* **zero configuration** - The module is designed with reasonable
+    defaults, so you can simply drop it in
+* **automatic re-auth** - The module is designed to use short session
+    cookies and automatically re-authenticate.
 
 # How it Works
 
@@ -49,8 +52,8 @@ that presents a Persona login page.
 
 Upon successful authentication with Persona, this page will send a
 request to the server with a Persona assertion in an HTTP header.  The
-module, upon detecting no cookie is present, will look for this header,
-validate the assertion, and set a short session cookie.
+module, upon detecting no cookie is present, will look for this
+header, validate the assertion, and set a short session cookie.
 
 The authentication page will then reload the desired resource.
 
