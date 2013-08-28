@@ -273,13 +273,15 @@ static void register_hooks(apr_pool_t *p)
   ap_hook_auth_checker(Auth_browserid_check_auth, NULL, NULL, APR_HOOK_FIRST);
 }
 
+#define RAND_BYTES_AT_A_TIME 256
 static void *build_server_secret(apr_pool_t *p, char *d)
 {
   apr_random_t *prng = apr_random_standard_new(p);
-  //while (apr_random_secure_ready(prng) == APR_ENOTENOUGHENTROPY) {
-  //  ap_log_error(APLOG_MARK, APLOG_ERR, 0, ERRTAG "not enough entropy");
-  //  continue;
-  //}
+  while (apr_random_secure_ready(prng) == APR_ENOTENOUGHENTROPY) {
+    unsigned char randbuf[RAND_BYTES_AT_A_TIME];
+    apr_generate_random_bytes(randbuf, RAND_BYTES_AT_A_TIME);
+    apr_random_add_entropy(prng, randbuf, RAND_BYTES_AT_A_TIME);
+  }
   char *secret = apr_palloc(p, PERSONA_SECRET_SIZE);
   apr_random_secure_bytes(prng, secret, PERSONA_SECRET_SIZE);
   buffer_t *buf = apr_palloc(p, sizeof(buffer_t));
