@@ -132,7 +132,7 @@ static int Auth_browserid_check_cookie(request_rec *r)
   }
 
   ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Persona cookie not found; not authorized! RemoteIP:%s",szRemoteIP);
-  // XXX: ideally send a 401 here.
+  r->status = HTTP_UNAUTHORIZED;
   ap_set_content_type(r, "text/html");
   ap_rwrite(src_signin_html, sizeof(src_signin_html), r);
   return DONE;
