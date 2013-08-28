@@ -35,6 +35,7 @@
 #include <apr_strings.h>
 #include <apr_uuid.h>
 #include <apr_tables.h>
+#include <apr_random.h>
 
 #include <httpd.h>
 #include <http_config.h>
@@ -104,7 +105,8 @@ static int Auth_browserid_check_cookie(request_rec *r)
 
   /* If this is an authentication request providing an assertion, let's process it */
   assertion = apr_table_get(r->headers_in, "X-Persona-Assertion");
-  szCookieValue = extractCookie(r, PERSONA_COOKIE_NAME);
+  buffer_t *secret = ap_get_module_config(r->per_dir_config, &authn_persona_module);
+  szCookieValue = extractCookie(r, secret, PERSONA_COOKIE_NAME);
 
   // Start of flow: no cookie, no assertion -> no access, throw error document
   if (!szCookieValue && !assertion) {
@@ -120,7 +122,7 @@ static int Auth_browserid_check_cookie(request_rec *r)
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG
                   "Assertion received '%s'", assertion);
 
-    int rez = processAssertion(r, assertion);
+    int rez = processAssertion(r, secret, assertion);
     if (rez == OK) {
       // XXX: cookie is written inside processAssertion()
       return DONE;
@@ -134,7 +136,7 @@ static int Auth_browserid_check_cookie(request_rec *r)
   ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "got cookie; value is %s", szCookieValue);
 
   /* Check cookie validity */
-  if (validateCookie(r, szCookieValue)) {
+  if (validateCookie(r, secret, szCookieValue)) {
     ap_log_rerror(APLOG_MARK, APLOG_WARNING|APLOG_NOERRNO, 0, r, ERRTAG "Invalid Persona cookie: %s", szCookieValue);
 
     // XXX: ideally send a 401 here.
@@ -290,11 +292,26 @@ static void register_hooks(apr_pool_t *p)
   ap_hook_auth_checker(Auth_browserid_check_auth, NULL, NULL, APR_HOOK_FIRST);
 }
 
+static void *build_server_secret(apr_pool_t *p, char *d)
+{
+  apr_random_t *prng = apr_random_standard_new(p);
+  //while (apr_random_secure_ready(prng) == APR_ENOTENOUGHENTROPY) {
+  //  ap_log_error(APLOG_MARK, APLOG_ERR, 0, ERRTAG "not enough entropy");
+  //  continue;
+  //}
+  char *secret = apr_palloc(p, PERSONA_SECRET_SIZE);
+  apr_random_secure_bytes(prng, secret, PERSONA_SECRET_SIZE);
+  buffer_t *buf = apr_palloc(p, sizeof(buffer_t));
+  buf->len = PERSONA_SECRET_SIZE;
+  buf->data = secret;
+  return buf;
+}
+
 /* apache module structure */
 module AP_MODULE_DECLARE_DATA authn_persona_module =
 {
   STANDARD20_MODULE_STUFF,
-  NULL,                       /* dir config creator */
+  build_server_secret,        /* dir config creator */
   NULL,                       /* dir merger --- default is to override */
   NULL,                       /* server config */
   NULL,                       /* merge server config */
