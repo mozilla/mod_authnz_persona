@@ -48,6 +48,6 @@
 #include <curl/curl.h>
 #include <curl/easy.h>
 
-int processAssertion(request_rec *r, const char * assertion);
+int processAssertion(request_rec *r, buffer_t *secret, const char *assertion);
 
 #endif

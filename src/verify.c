@@ -128,7 +128,7 @@ static char *verifyAssertionRemote(request_rec *r, char *assertionText)
  *
  * TODO: local verification
  */
-int processAssertion(request_rec *r, const char * assertion)
+int processAssertion(request_rec *r, buffer_t *secret, const char * assertion)
 {
   ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "Submission to BrowserID form handler");
 
@@ -165,7 +165,7 @@ int processAssertion(request_rec *r, const char * assertion)
       return DECLINED;
     }
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "In post_read_request; got email %s", foundEmail->u.string);
-    createSessionCookie(r, foundEmail->u.string);
+    createSessionCookie(r, secret, foundEmail->u.string);
 
     return OK;
   }
