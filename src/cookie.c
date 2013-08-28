@@ -42,12 +42,12 @@
 
 /** Generates a signature with the given inputs, returning a Base64-encoded
  * signature value. */
-static char *generateSignature(request_rec *r, char *userAddress)
+static char *generateSignature(request_rec *r, buffer_t *secret, char *userAddress)
 {
   apr_sha1_ctx_t context;
   apr_sha1_init(&context);
   apr_sha1_update(&context, userAddress, strlen(userAddress));
-  apr_sha1_update(&context, PERSONA_SERVER_SECRET, strlen(PERSONA_SERVER_SECRET));
+  apr_sha1_update(&context, secret->data, secret->len);
   unsigned char digest[20];
   apr_sha1_final(digest, &context);
 
@@ -58,7 +58,7 @@ static char *generateSignature(request_rec *r, char *userAddress)
 
 /* Look through the 'Cookie' headers for the indicated cookie; extract it
  * and URL-unescape it. Return the cookie on success, NULL on failure. */
-char * extractCookie(request_rec *r, const char *szCookie_name) 
+char * extractCookie(request_rec *r, buffer_t *secret, const char *szCookie_name) 
 {
   char *szRaw_cookie_start=NULL, *szRaw_cookie_end;
   char *szCookie;
@@ -94,7 +94,7 @@ char * extractCookie(request_rec *r, const char *szCookie_name)
 }
 
 /* Check the cookie and make sure it is valid */
-int validateCookie(request_rec *r, char *szCookieValue)
+int validateCookie(request_rec *r, buffer_t *secret, char *szCookieValue)
 {
   /* split at | */
   char *sig = NULL;
@@ -104,7 +104,7 @@ int validateCookie(request_rec *r, char *szCookieValue)
     return 1;
   }
 
-  char *digest64 = generateSignature(r, addr);
+  char *digest64 = generateSignature(r, secret, addr);
   ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "Got cookie: email is %s; expected digest is %s; got digest %s",
                 addr, digest64, sig);
 
@@ -120,9 +120,9 @@ int validateCookie(request_rec *r, char *szCookieValue)
 }
 
 /** Create a session cookie with a given identity */
-void createSessionCookie(request_rec *r, char *identity)
+void createSessionCookie(request_rec *r, buffer_t *secret, char *identity)
 {
-  char *digest64 = generateSignature(r, identity);
+  char *digest64 = generateSignature(r, secret, identity);
 
   /* syntax of cookie is identity|signature */
   apr_table_set(r->err_headers_out, "Set-Cookie",

@@ -21,15 +21,16 @@
 #define __COOKIE_H__
 
 #include <httpd.h>
+#include "defines.h"
 
 /* Look through the 'Cookie' headers for the indicated cookie; extract it
  * and URL-unescape it. Return the cookie on success, NULL on failure. */
-char * extractCookie(request_rec *r, const char *szCookie_name);
+char * extractCookie(request_rec *r, buffer_t *secret, const char *szCookie_name);
 
 /* Check the cookie and make sure it is valid */
-int validateCookie(request_rec *r, char *szCookieValue);
+int validateCookie(request_rec *r, buffer_t *secret, char *szCookieValue);
 
 /** Create a session cookie with a given identity */
-void createSessionCookie(request_rec *r, char *identity);
+void createSessionCookie(request_rec *r, buffer_t *secret, char *identity);
 
 #endif
