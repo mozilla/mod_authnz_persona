@@ -103,58 +103,39 @@ static int Auth_browserid_check_cookie(request_rec *r)
     return HTTP_UNAUTHORIZED;
   }
 
-  /* If this is an authentication request providing an assertion, let's process it */
-  assertion = apr_table_get(r->headers_in, "X-Persona-Assertion");
+  // if there's a valid cookie, allow the user throught
   buffer_t *secret = ap_get_module_config(r->per_dir_config, &authn_persona_module);
   szCookieValue = extractCookie(r, secret, PERSONA_COOKIE_NAME);
 
-  // Start of flow: no cookie, no assertion -> no access, throw error document
-  if (!szCookieValue && !assertion) {
-    ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Persona cookie not found; not authorized! RemoteIP:%s",szRemoteIP);
-    // XXX: ideally send a 401 here.
-    ap_set_content_type(r, "text/html");
-    ap_rwrite(src_signin_html, sizeof(src_signin_html), r);
-    return DONE;
+  if (szCookieValue && APR_SUCCESS == validateCookie(r, secret, szCookieValue)) {
+    /* set REMOTE_USER var for scripts language */
+    apr_table_setn(r->subprocess_env,"REMOTE_USER",r->user);
+    ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Valid auth cookie found, passthrough");
+    return OK;
   }
 
-  // Have assertion, want cookie: XHR, send cookie if assertion checks out
-  if (assertion && !szCookieValue) {
+  // We'll trade you a valid assertion for a session cookie!
+  // this is a programatic XHR request.
+  assertion = apr_table_get(r->headers_in, "X-Persona-Assertion");
+  if (assertion) {
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG
                   "Assertion received '%s'", assertion);
 
-    int rez = processAssertion(r, secret, assertion);
-    if (rez == OK) {
-      // XXX: cookie is written inside processAssertion()
+    // as a side effect, process assertion will set a cookie
+    if (OK == processAssertion(r, secret, assertion)) {
       return DONE;
+    } else {
+      // XXX: invalid assertion, what do we do?
+      ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Failed to validate Assertion");
+      return HTTP_INTERNAL_SERVER_ERROR;
     }
-
-    // XXX: invalid assertion, what do we do?
-    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "1 beer");
-    return HTTP_INTERNAL_SERVER_ERROR;
   }
 
-  ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "got cookie; value is %s", szCookieValue);
-
-  /* Check cookie validity */
-  if (validateCookie(r, secret, szCookieValue)) {
-    ap_log_rerror(APLOG_MARK, APLOG_WARNING|APLOG_NOERRNO, 0, r, ERRTAG "Invalid Persona cookie: %s", szCookieValue);
-
-    // XXX: ideally send a 401 here.
-    ap_set_content_type(r, "text/html");
-    ap_rwrite(src_signin_html, sizeof(src_signin_html), r);
-
-    return DONE;
-  }
-
-  /* set REMOTE_USER var for scripts language */
-  apr_table_setn(r->subprocess_env,"REMOTE_USER",r->user);
-
-  /* log authorisation ok */
-  ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "Persona authentication ok");
-
-  /* if all is ok return auth ok */
-  ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "lots of beer");
-  return OK;
+  ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Persona cookie not found; not authorized! RemoteIP:%s",szRemoteIP);
+  // XXX: ideally send a 401 here.
+  ap_set_content_type(r, "text/html");
+  ap_rwrite(src_signin_html, sizeof(src_signin_html), r);
+  return DONE;
 }
 
 
