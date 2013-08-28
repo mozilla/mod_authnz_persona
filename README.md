@@ -23,6 +23,7 @@ Configure the module:
 
     <Location />
        AuthType Persona
+       require valid-user # XXX: figure out how this should work
     </Location>
 
 This will cause the module to require Persona authentication for all
