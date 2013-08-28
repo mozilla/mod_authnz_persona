@@ -40,7 +40,7 @@ Dependencies
 
 * **zero configuration** - The module is designed with reasonable
     defaults, so you can simply drop it in
-* **automatic re-auth** - The module is designed to use short session
+* **automatic re-auth** - The module is designed to use session
     cookies and automatically re-authenticate.
 
 # How it Works
