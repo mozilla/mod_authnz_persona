@@ -96,7 +96,7 @@ static int Auth_browserid_check_cookie(request_rec *r)
 
   ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth_browserid_check_cookie");
 
-  ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "AuthType are '%s'", ap_auth_type(r));
+  ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "AuthType '%s'", ap_auth_type(r));
   unless(strncmp("Persona",ap_auth_type(r),9)==0) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth type must be 'Persona'");
     return HTTP_UNAUTHORIZED;
