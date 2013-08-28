@@ -104,10 +104,10 @@ static int Auth_persona_check_cookie(request_rec *r)
   }
 
   // if there's a valid cookie, allow the user throught
-  buffer_t *secret = ap_get_module_config(r->per_dir_config, &authn_persona_module);
-  szCookieValue = extractCookie(r, secret, PERSONA_COOKIE_NAME);
+  persona_config_t *conf = ap_get_module_config(r->per_dir_config, &authn_persona_module);
+  szCookieValue = extractCookie(r, conf->secret, PERSONA_COOKIE_NAME);
 
-  if (szCookieValue && APR_SUCCESS == validateCookie(r, secret, szCookieValue)) {
+  if (szCookieValue && APR_SUCCESS == validateCookie(r, conf->secret, szCookieValue)) {
     /* set REMOTE_USER var for scripts language */
     apr_table_setn(r->subprocess_env,"REMOTE_USER",r->user);
     ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Valid auth cookie found, passthrough");
@@ -122,7 +122,7 @@ static int Auth_persona_check_cookie(request_rec *r)
                   "Assertion received '%s'", assertion);
 
     // as a side effect, process assertion will set a cookie
-    if (OK == processAssertion(r, secret, assertion)) {
+    if (OK == processAssertion(r, conf->secret, assertion)) {
       return DONE;
     } else {
       // XXX: invalid assertion, what do we do?
@@ -274,8 +274,9 @@ static void register_hooks(apr_pool_t *p)
 }
 
 #define RAND_BYTES_AT_A_TIME 256
-static void *build_server_secret(apr_pool_t *p, char *d)
+static void *persona_build_config(apr_pool_t *p, char *d)
 {
+  persona_config_t *conf = apr_palloc(p, sizeof(*conf));
   apr_random_t *prng = apr_random_standard_new(p);
   while (apr_random_secure_ready(prng) == APR_ENOTENOUGHENTROPY) {
     unsigned char randbuf[RAND_BYTES_AT_A_TIME];
@@ -284,17 +285,17 @@ static void *build_server_secret(apr_pool_t *p, char *d)
   }
   char *secret = apr_palloc(p, PERSONA_SECRET_SIZE);
   apr_random_secure_bytes(prng, secret, PERSONA_SECRET_SIZE);
-  buffer_t *buf = apr_palloc(p, sizeof(buffer_t));
-  buf->len = PERSONA_SECRET_SIZE;
-  buf->data = secret;
-  return buf;
+  conf->secret = apr_palloc(p, sizeof(buffer_t));
+  conf->secret->len = PERSONA_SECRET_SIZE;
+  conf->secret->data = secret;
+  return conf;
 }
 
 /* apache module structure */
 module AP_MODULE_DECLARE_DATA authn_persona_module =
 {
   STANDARD20_MODULE_STUFF,
-  build_server_secret,        /* dir config creator */
+  persona_build_config,       /* dir config creator */
   NULL,                       /* dir merger --- default is to override */
   NULL,                       /* server config */
   NULL,                       /* merge server config */
