@@ -100,7 +100,7 @@ int validateCookie(request_rec *r, buffer_t *secret, char *szCookieValue)
   char *sig = NULL;
   char *addr = apr_strtok(szCookieValue, "|", &sig);
   if (!addr) {
-    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "malformed BrowserID cookie");
+    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "malformed Persona cookie");
     return 1;
   }
 
@@ -110,7 +110,7 @@ int validateCookie(request_rec *r, buffer_t *secret, char *szCookieValue)
 
   /* paranoia indicates that we should use a time-invariant compare here */
   if (strcmp(digest64, sig)) {
-    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "invalid BrowserID cookie");
+    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "invalid Persona cookie");
     return 1;
   }
 

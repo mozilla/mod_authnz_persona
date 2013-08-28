@@ -89,13 +89,13 @@ static int user_in_file(request_rec *r, char *username, char *filename)
  *
  * Pull the cookie from the header and verify it.
  **************************************************/
-static int Auth_browserid_check_cookie(request_rec *r)
+static int Auth_persona_check_cookie(request_rec *r)
 {
   char *szCookieValue=NULL;
   char *szRemoteIP=NULL;
   const char *assertion=NULL;
 
-  ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth_browserid_check_cookie");
+  ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth_persona_check_cookie");
 
   ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "AuthType '%s'", ap_auth_type(r));
   unless(strncmp("Persona",ap_auth_type(r),9)==0) {
@@ -146,7 +146,7 @@ static int Auth_browserid_check_cookie(request_rec *r)
  *
  * if it is valid, apply per-resource authorization rules.
  **************************************************/
-static int Auth_browserid_check_auth(request_rec *r)
+static int Auth_persona_check_auth(request_rec *r)
 {
   char *szUser;
   const apr_array_header_t *reqs_arr=NULL;
@@ -156,7 +156,7 @@ static int Auth_browserid_check_auth(request_rec *r)
   char *szFileName;
   char *szRequire_cmd;
 
-  ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth_browserid_check_auth");
+  ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth_persona_check_auth");
 
   /* get require line */
   reqs_arr = ap_requires(r);
@@ -269,8 +269,8 @@ static int processLogout(request_rec *r)
 static void register_hooks(apr_pool_t *p)
 {
   // these hooks are are executed in order, first is first.
-  ap_hook_check_user_id(Auth_browserid_check_cookie, NULL, NULL, APR_HOOK_FIRST);
-  ap_hook_auth_checker(Auth_browserid_check_auth, NULL, NULL, APR_HOOK_FIRST);
+  ap_hook_check_user_id(Auth_persona_check_cookie, NULL, NULL, APR_HOOK_FIRST);
+  ap_hook_auth_checker(Auth_persona_check_auth, NULL, NULL, APR_HOOK_FIRST);
 }
 
 #define RAND_BYTES_AT_A_TIME 256

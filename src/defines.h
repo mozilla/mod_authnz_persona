@@ -7,7 +7,7 @@
 #define PERSONA_COOKIE_NAME "Persona"
 #define PERSONA_SECRET_SIZE 1024
 
-#define ERRTAG "Auth_browserID: "
+#define ERRTAG "authn_persona: "
 #define VERSION "1.0.0"
 #define unless(c) if(!(c))
 

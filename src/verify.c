@@ -101,12 +101,12 @@ static char *verifyAssertionRemote(request_rec *r, char *assertionText)
   chunk.r = r;
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
-  curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-mod_browserid-agent/1.0");
+  curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-mod_authn_persona-agent/1.0");
 
   CURLcode result = curl_easy_perform(curl);
   if (result != 0) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r ,
-                  ERRTAG  "Error while communicating with BrowserID verification server: %s",
+                  ERRTAG  "Error while communicating with Persona verification server: %s",
                   curl_easy_strerror(result));
     curl_easy_cleanup(curl);
     return NULL;
@@ -115,7 +115,7 @@ static char *verifyAssertionRemote(request_rec *r, char *assertionText)
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
   if (responseCode != 200) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r ,
-                  ERRTAG  "Error while communicating with BrowserID verification server: result code %ld", responseCode);
+                  ERRTAG  "Error while communicating with Persona verification server: result code %ld", responseCode);
     curl_easy_cleanup(curl);
     return NULL;
   }
@@ -130,7 +130,7 @@ static char *verifyAssertionRemote(request_rec *r, char *assertionText)
  */
 int processAssertion(request_rec *r, buffer_t *secret, const char * assertion)
 {
-  ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "Submission to BrowserID form handler");
+  ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "Submission to Persona form handler");
 
   /* verify the assertion... */
   yajl_val parsed_result = NULL;
@@ -141,7 +141,7 @@ int processAssertion(request_rec *r, buffer_t *secret, const char * assertion)
     char errorBuffer[256];
     parsed_result = yajl_tree_parse(assertionResult, errorBuffer, 255);
     if (!parsed_result) {
-      ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG "Error parsing BrowserID verification response: malformed payload: %s", errorBuffer);
+      ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG "Error parsing Persona verification response: malformed payload: %s", errorBuffer);
       return DECLINED;
     }
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG
@@ -161,7 +161,7 @@ int processAssertion(request_rec *r, buffer_t *secret, const char * assertion)
     /** XXX if we don't have an email, something went wrong.  Should pull the error code properly!  This will
      *  probably require refactoring this function since the local path is different.  ***/
     if (!foundEmail || foundEmail->type != yajl_t_string) {
-      ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG "Error parsing BrowserID login: no email in payload");
+      ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG "Error parsing Persona login: no email in payload");
       return DECLINED;
     }
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "In post_read_request; got email %s", foundEmail->u.string);
