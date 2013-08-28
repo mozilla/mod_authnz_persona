@@ -96,45 +96,41 @@ static int Auth_browserid_check_cookie(request_rec *r)
 
   ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth_browserid_check_cookie");
 
-  /* If this is an authentication request providing an assertion, let's process it */
-  assertion = apr_table_get(r->headers_in, "X-Persona-Assertion");
-  if (assertion) {
-    ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG
-                  "Assertion received '%s'", assertion);
-
-    int rez = processAssertion(r, assertion);
-
-    if (rez == OK) {
-      /* redirect to the requested resource */
-      // 1. set cookie
-      // 2. set response code
-      // 3. return DONE
-      // XXX: write me
-    }
-
-    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "1 beer");
-
-    // implement me!
-    return HTTP_INTERNAL_SERVER_ERROR;
-  }
-
-  ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "AuthType are '%s'", ap_auth_type(r));
+  ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "AuthType '%s'", ap_auth_type(r));
   unless(strncmp("Persona",ap_auth_type(r),9)==0) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth type must be 'Persona'");
     return HTTP_UNAUTHORIZED;
   }
 
-  /* get cookie who are named PERSONA_COOKIE_NAME */
-  unless(szCookieValue = extractCookie(r, PERSONA_COOKIE_NAME))
-  {
-    ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Persona cookie not found; not authorized! RemoteIP:%s",szRemoteIP);
+  /* If this is an authentication request providing an assertion, let's process it */
+  assertion = apr_table_get(r->headers_in, "X-Persona-Assertion");
+  szCookieValue = extractCookie(r, PERSONA_COOKIE_NAME);
 
+  // Start of flow: no cookie, no assertion -> no access, throw error document
+  if (!szCookieValue && !assertion) {
+    ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Persona cookie not found; not authorized! RemoteIP:%s",szRemoteIP);
     // XXX: ideally send a 401 here.
     ap_set_content_type(r, "text/html");
     ap_rwrite(src_signin_html, sizeof(src_signin_html), r);
-
     return DONE;
   }
+
+  // Have assertion, want cookie: XHR, send cookie if assertion checks out
+  if (assertion && !szCookieValue) {
+    ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG
+                  "Assertion received '%s'", assertion);
+
+    int rez = processAssertion(r, assertion);
+    if (rez == OK) {
+      // XXX: cookie is written inside processAssertion()
+      return DONE;
+    }
+
+    // XXX: invalid assertion, what do we do?
+    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "1 beer");
+    return HTTP_INTERNAL_SERVER_ERROR;
+  }
+
   ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "got cookie; value is %s", szCookieValue);
 
   /* Check cookie validity */
