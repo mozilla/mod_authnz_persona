@@ -175,7 +175,7 @@ body.loading a span:after  { display: none; }
 </body>
 <script>
 navigator.id.watch({
-  loggedInUser: null,
+  loggedInUser: undefined,
   onlogin: function(assertion) {
     // now send an ajax request back, directly to the
     // processing middleware
@@ -192,7 +192,9 @@ navigator.id.watch({
       }
     });
   },
-  onlogout: function() {}
+  onlogout: function() {
+    document.getElementsByTagName('body')[0].className = '';
+  }
 });
 
 document.getElementById('auth').onclick = function() {
