@@ -38,7 +38,6 @@ Dependencies
 
 * **zero configuration** - The module is designed with reasonable defaults, so you can simply drop it in
 * **automatic re-auth** - The module is designed to use short session cookies and automatically re-authenticate.
-* ****
 
 # How it Works
 
@@ -60,6 +59,8 @@ Available Configuration
 
 * (not yet implemented) `AuthnPersonaCookieSecret`:
 	A secret that will be used to sign cookies.  If not provided, upon server
-  start cookies will be generated automatically.
+  start cookies will be generated automatically.  Given re-authentication
+  is automatic, it is only required to set a cookie secret if your
+  application is hosted on multiple load balanced apache servers.
 
 (not yet implemented) A way to specifiy the IdP you require
