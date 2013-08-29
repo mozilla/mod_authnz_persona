@@ -104,7 +104,7 @@ static int Auth_persona_check_cookie(request_rec *r)
   }
 
   // if there's a valid cookie, allow the user throught
-  persona_config_t *conf = ap_get_module_config(r->per_dir_config, &authn_persona_module);
+  persona_config_t *conf = ap_get_module_config(r->server->module_config, &authn_persona_module);
   szCookieValue = extractCookie(r, conf->secret, PERSONA_COOKIE_NAME);
 
   if (szCookieValue && APR_SUCCESS == validateCookie(r, conf->secret, szCookieValue)) {
@@ -274,7 +274,7 @@ static void register_hooks(apr_pool_t *p)
 }
 
 #define RAND_BYTES_AT_A_TIME 256
-static void *persona_build_config(apr_pool_t *p, char *d)
+static void *persona_create_svr_config(apr_pool_t *p, server_rec *s)
 {
   persona_config_t *conf = apr_palloc(p, sizeof(*conf));
   apr_random_t *prng = apr_random_standard_new(p);
@@ -295,9 +295,9 @@ static void *persona_build_config(apr_pool_t *p, char *d)
 module AP_MODULE_DECLARE_DATA authn_persona_module =
 {
   STANDARD20_MODULE_STUFF,
-  persona_build_config,       /* dir config creator */
+  NULL,                       /* dir config creator */
   NULL,                       /* dir merger --- default is to override */
-  NULL,                       /* server config */
+  persona_create_svr_config,  /* server config creator */
   NULL,                       /* merge server config */
   NULL,                       /* command apr_table_t */
   register_hooks              /* register hooks */
