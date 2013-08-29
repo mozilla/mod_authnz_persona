@@ -291,6 +291,24 @@ static void *persona_create_svr_config(apr_pool_t *p, server_rec *s)
   return conf;
 }
 
+const char* persona_server_secret_option(cmd_parms *cmd, void *cfg, const char *arg) {
+  server_rec *s = cmd->server;
+  persona_config_t *conf = ap_get_module_config(s->module_config, &authn_persona_module);
+  conf->secret->len = strlen(arg);
+  conf->secret->data = apr_palloc(cmd->pool, conf->secret->len);
+  strncpy(conf->secret->data, arg, conf->secret->len);
+  return NULL;
+}
+
+static const command_rec Auth_persona_options[] =
+{
+  AP_INIT_TAKE1(
+    "AuthPersonaServerSecret", persona_server_secret_option,
+    NULL, RSRC_CONF, "Server secret to use for cookie signing"
+  ),
+  {NULL}
+};
+
 /* apache module structure */
 module AP_MODULE_DECLARE_DATA authn_persona_module =
 {
@@ -299,6 +317,6 @@ module AP_MODULE_DECLARE_DATA authn_persona_module =
   NULL,                       /* dir merger --- default is to override */
   persona_create_svr_config,  /* server config creator */
   NULL,                       /* merge server config */
-  NULL,                       /* command apr_table_t */
+  Auth_persona_options,       /* command apr_table_t */
   register_hooks              /* register hooks */
 };
