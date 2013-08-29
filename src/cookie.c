@@ -42,7 +42,7 @@
 
 /** Generates a signature with the given inputs, returning a Base64-encoded
  * signature value. */
-static char *generateSignature(request_rec *r, buffer_t *secret, char *userAddress)
+static char *generateSignature(request_rec *r, const buffer_t *secret, const char *userAddress)
 {
   apr_sha1_ctx_t context;
   apr_sha1_init(&context);
@@ -58,7 +58,7 @@ static char *generateSignature(request_rec *r, buffer_t *secret, char *userAddre
 
 /* Look through the 'Cookie' headers for the indicated cookie; extract it
  * and URL-unescape it. Return the cookie on success, NULL on failure. */
-char * extractCookie(request_rec *r, buffer_t *secret, const char *szCookie_name) 
+char * extractCookie(request_rec *r, const buffer_t *secret, const char *szCookie_name)
 {
   char *szRaw_cookie_start=NULL, *szRaw_cookie_end;
   char *szCookie;
@@ -94,11 +94,11 @@ char * extractCookie(request_rec *r, buffer_t *secret, const char *szCookie_name
 }
 
 /* Check the cookie and make sure it is valid */
-int validateCookie(request_rec *r, buffer_t *secret, char *szCookieValue)
+int validateCookie(request_rec *r, const buffer_t *secret, const char *szCookieValue)
 {
   /* split at | */
   char *sig = NULL;
-  char *addr = apr_strtok(szCookieValue, "|", &sig);
+  char *addr = apr_strtok((char *) szCookieValue, "|", &sig);
   if (!addr) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "malformed Persona cookie");
     return 1;
@@ -120,7 +120,7 @@ int validateCookie(request_rec *r, buffer_t *secret, char *szCookieValue)
 }
 
 /** Create a session cookie with a given identity */
-void createSessionCookie(request_rec *r, buffer_t *secret, char *identity)
+void createSessionCookie(request_rec *r, const buffer_t *secret, const char *identity)
 {
   char *digest64 = generateSignature(r, secret, identity);
 
