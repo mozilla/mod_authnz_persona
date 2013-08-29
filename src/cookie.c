@@ -64,29 +64,29 @@ char * extractCookie(request_rec *r, const buffer_t *secret, const char *szCooki
   char *szCookie;
   /* get cookie string */
   char*szRaw_cookie = (char*)apr_table_get( r->headers_in, "Cookie");
-  unless(szRaw_cookie) return 0;
+  if (!szRaw_cookie) return 0;
 
   /* loop to search cookie name in cookie header */
   do {
     ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "Checking cookie %s, looking for %s", szRaw_cookie, szCookie_name);
 
     /* search cookie name in cookie string */
-    unless (szRaw_cookie =strstr(szRaw_cookie, szCookie_name)) return 0;
+    if (!(szRaw_cookie = strstr(szRaw_cookie, szCookie_name))) return 0;
     szRaw_cookie_start=szRaw_cookie;
     /* search '=' */
-    unless (szRaw_cookie = strchr(szRaw_cookie, '=')) return 0;
+    if (!(szRaw_cookie = strchr(szRaw_cookie, '='))) return 0;
   } while (strncmp(szCookie_name,szRaw_cookie_start,szRaw_cookie-szRaw_cookie_start)!=0);
 
   /* skip '=' */
   szRaw_cookie++;
 
   /* search end of cookie name value: ';' or end of cookie strings */
-  unless ((szRaw_cookie_end = strchr(szRaw_cookie, ';')) || (szRaw_cookie_end = strchr(szRaw_cookie, '\0'))) return 0;
+  if (!((szRaw_cookie_end = strchr(szRaw_cookie, ';')) || (szRaw_cookie_end = strchr(szRaw_cookie, '\0')))) return 0;
 
   /* dup the value string found in apache pool and set the result pool ptr to szCookie ptr */
-  unless (szCookie = apr_pstrndup(r->pool, szRaw_cookie, szRaw_cookie_end-szRaw_cookie)) return 0;
+  if (!(szCookie = apr_pstrndup(r->pool, szRaw_cookie, szRaw_cookie_end-szRaw_cookie))) return 0;
   /* unescape the value string */ 
-  unless (ap_unescape_url(szCookie) == 0) return 0;
+  if (ap_unescape_url(szCookie) != 0) return 0;
 
   ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "finished cookie scan, returning %s", szCookie);
 
@@ -94,14 +94,14 @@ char * extractCookie(request_rec *r, const buffer_t *secret, const char *szCooki
 }
 
 /* Check the cookie and make sure it is valid */
-int validateCookie(request_rec *r, const buffer_t *secret, const char *szCookieValue)
+char* validateCookie(request_rec *r, const buffer_t *secret, const char *szCookieValue)
 {
   /* split at | */
   char *sig = NULL;
   char *addr = apr_strtok((char *) szCookieValue, "|", &sig);
   if (!addr) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "malformed Persona cookie");
-    return 1;
+    return NULL;
   }
 
   char *digest64 = generateSignature(r, secret, addr);
@@ -111,12 +111,10 @@ int validateCookie(request_rec *r, const buffer_t *secret, const char *szCookieV
   /* paranoia indicates that we should use a time-invariant compare here */
   if (strcmp(digest64, sig)) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "invalid Persona cookie");
-    return 1;
+    return NULL;
   }
 
-  /* Cookie is good: set r->user */
-  r->user = (char*)addr;
-  return 0;
+  return addr;
 }
 
 /** Create a session cookie with a given identity */

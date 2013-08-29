@@ -23,7 +23,9 @@ Configure the module:
 
     <Location />
        AuthType Persona
-       require valid-user # XXX: figure out how this should work
+       Require valid-user # XXX: figure out how this should work
+       # Or, require users with host/IdP example.com:
+       # Require persona-idp example.com
     </Location>
 
 This will cause the module to require Persona authentication for all
@@ -32,7 +34,7 @@ requests to the server.
 Dependencies
 ============
 
-* apache 2.0 or later
+* apache 2.0 or later (mostly tested with 2.2 so far)
 * libcurl 7.10.8 or later
 * yajl 2.0 or later
 

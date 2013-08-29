@@ -98,7 +98,7 @@ static int Auth_persona_check_cookie(request_rec *r)
   ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth_persona_check_cookie");
 
   ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "AuthType '%s'", ap_auth_type(r));
-  unless(strncmp("Persona",ap_auth_type(r),9)==0) {
+  if (strncmp("Persona", ap_auth_type(r), 9) != 0) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth type must be 'Persona'");
     return HTTP_UNAUTHORIZED;
   }
@@ -107,9 +107,11 @@ static int Auth_persona_check_cookie(request_rec *r)
   persona_config_t *conf = ap_get_module_config(r->server->module_config, &authn_persona_module);
   szCookieValue = extractCookie(r, conf->secret, PERSONA_COOKIE_NAME);
 
-  if (szCookieValue && APR_SUCCESS == validateCookie(r, conf->secret, szCookieValue)) {
-    /* set REMOTE_USER var for scripts language */
-    apr_table_setn(r->subprocess_env,"REMOTE_USER",r->user);
+  char *verifiedEmail = NULL;
+  if (szCookieValue &&
+      (verifiedEmail = validateCookie(r, conf->secret, szCookieValue))) {
+    r->user = verifiedEmail;
+    apr_table_setn(r->subprocess_env, "REMOTE_USER", verifiedEmail);
     ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Valid auth cookie found, passthrough");
     return OK;
   }
@@ -119,7 +121,7 @@ static int Auth_persona_check_cookie(request_rec *r)
 
   // XXX: only test for post - issue #10
 
-  assertion = apr_table_get(r->headers_in, "X-Persona-Assertion");
+  assertion = apr_table_get(r->headers_in, PERSONA_ASSERTION_HEADER);
   if (assertion) {
     VerifyResult res = processAssertion(r, assertion);
 
@@ -214,6 +216,23 @@ static int Auth_persona_check_auth(request_rec *r)
         return OK;
       }
     }
+
+    // persona-idp: check host part of user name
+    else if (!strcmp("persona-idp", szRequire_cmd)) {
+      char *reqIdp = ap_getword_conf(r->pool, &szRequireLine);
+      char *last = NULL;
+      char *host = apr_strtok(apr_pstrdup(r->pool, r->user), "@", &last);
+      host = apr_strtok(NULL, "@", &last);
+      if (strcmp(host, reqIdp)) {
+        ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
+                     ERRTAG "user '%s' is not authenticated by IdP '%s'", r->user, reqIdp);
+        return HTTP_FORBIDDEN;
+      }
+      ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r,
+                    ERRTAG "user '%s' is authorized", r->user);
+      return OK;
+    }
+
   }
   ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r ,ERRTAG  "user '%s' is not authorized",r->user);
   /* forbid by default */
