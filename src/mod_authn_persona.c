@@ -216,6 +216,23 @@ static int Auth_persona_check_auth(request_rec *r)
         return OK;
       }
     }
+
+    // persona-idp: check host part of user name
+    else if (!strcmp("persona-idp", szRequire_cmd)) {
+      char *reqIdp = ap_getword_conf(r->pool, &szRequireLine);
+      char *last = NULL;
+      char *host = apr_strtok(apr_pstrdup(r->pool, r->user), "@", &last);
+      host = apr_strtok(NULL, "@", &last);
+      if (strcmp(host, reqIdp)) {
+        ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
+                     ERRTAG "user '%s' is not authenticated by IdP '%s'", r->user, reqIdp);
+        return HTTP_FORBIDDEN;
+      }
+      ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r,
+                    ERRTAG "user '%s' is authorized", r->user);
+      return OK;
+    }
+
   }
   ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r ,ERRTAG  "user '%s' is not authorized",r->user);
   /* forbid by default */
