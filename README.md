@@ -32,7 +32,7 @@ requests to the server.
 Dependencies
 ============
 
-* apache 2.0 or later
+* apache 2.0 or later (mostly tested with 2.2 so far)
 * libcurl 7.10.8 or later
 * yajl 2.0 or later
 
