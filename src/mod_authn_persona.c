@@ -147,6 +147,7 @@ static int Auth_persona_check_cookie(request_rec *r)
   r->status = HTTP_UNAUTHORIZED;
   ap_set_content_type(r, "text/html");
   ap_rwrite(src_signin_html, sizeof(src_signin_html), r);
+  ap_rwrite(PERSONA_END_PAGE, sizeof(PERSONA_END_PAGE), r);
   return DONE;
 }
 
