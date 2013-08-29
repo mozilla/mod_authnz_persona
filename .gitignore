@@ -32,3 +32,4 @@ build/install-sh
 build/ltmain.sh
 build/missing
 build/mod_authn_persona.spec
+mod_authn_persona-*.tar.gz
