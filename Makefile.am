@@ -5,7 +5,6 @@ module_LTLIBRARIES = mod_authn_persona.la
 bin_PROGRAMS = bin2c
 
 moduledir = $(shell $(APXS) -q LIBEXECDIR)
-noinst_authn_persona_ladir = $(srcdir)
 
 EXTRA_DIST=t README.md build/mod_authn_persona.spec build/test.pl .indent.pro src/signin.html
 
@@ -17,9 +16,8 @@ HTTPD_CFLAGS = $(shell $(APXS) -q CFLAGS) -I $(shell $(APXS) -q INCLUDEDIR)
 
 AM_CFLAGS = -Isrc $(HTTPD_CFLAGS) $(APR_CFLAGS) $(APU_CFLAGS) $(YAJL_CFLAGS) $(LIBCURL_CPPFLAGS)
 
-mod_authn_persona_la_SOURCES = src/mod_authn_persona.c src/cookie.c src/verify.c
-noinst_authn_persona_la_HEADERS = src/cookie.h src/defines.h src/verify.h
-nodist_mod_authn_persona_la_SOURCES = src/signin_page.h
+mod_authn_persona_la_SOURCES = src/mod_authn_persona.c src/cookie.c src/verify.c src/cookie.h src/defines.h src/verify.h
+noinst_mod_authn_persona_la_SOURCES = src/signin_page.h
 BUILT_SOURCES = src/signin_page.h
 mod_authn_persona_la_LDFLAGS = -module -avoid-version $(YAJL_LIBS) $(LIBCURL)
 
