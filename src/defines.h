@@ -16,4 +16,8 @@ typedef struct buffer {
   char *data;
 } buffer_t;
 
+typedef struct persona_config {
+  buffer_t *secret;
+} persona_config_t;
+
 #endif
