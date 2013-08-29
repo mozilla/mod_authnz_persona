@@ -190,8 +190,13 @@ navigator.id.watch({
         // message errors to the user?
         document.location.reload();
       },
-      error: function() {
-        alert("failed to sign you in!");
+      error: function(response) {
+        var error = response.responseText;
+        try {
+          // XXX - reqwest should be parsing this for us.
+          error = JSON.parse(response.response).reason;
+        } catch(e) {}
+        alert("failed to sign you in: " + error);
       },
       headers: {
         "X-Persona-Assertion": assertion
