@@ -28,7 +28,7 @@
 char * extractCookie(request_rec *r, const buffer_t *secret, const char *szCookie_name);
 
 /* Check the cookie and make sure it is valid */
-int validateCookie(request_rec *r, const buffer_t *secret, const char *szCookieValue);
+char * validateCookie(request_rec *r, const buffer_t *secret, const char *szCookieValue);
 
 /** Create a session cookie with a given identity */
 void createSessionCookie(request_rec *r, const buffer_t *secret, const char *identity);

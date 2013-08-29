@@ -94,14 +94,14 @@ char * extractCookie(request_rec *r, const buffer_t *secret, const char *szCooki
 }
 
 /* Check the cookie and make sure it is valid */
-int validateCookie(request_rec *r, const buffer_t *secret, const char *szCookieValue)
+char* validateCookie(request_rec *r, const buffer_t *secret, const char *szCookieValue)
 {
   /* split at | */
   char *sig = NULL;
   char *addr = apr_strtok((char *) szCookieValue, "|", &sig);
   if (!addr) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "malformed Persona cookie");
-    return 1;
+    return NULL;
   }
 
   char *digest64 = generateSignature(r, secret, addr);
@@ -111,12 +111,10 @@ int validateCookie(request_rec *r, const buffer_t *secret, const char *szCookieV
   /* paranoia indicates that we should use a time-invariant compare here */
   if (strcmp(digest64, sig)) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "invalid Persona cookie");
-    return 1;
+    return NULL;
   }
 
-  /* Cookie is good: set r->user */
-  r->user = (char*)addr;
-  return 0;
+  return addr;
 }
 
 /** Create a session cookie with a given identity */

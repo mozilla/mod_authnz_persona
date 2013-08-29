@@ -107,9 +107,10 @@ static int Auth_persona_check_cookie(request_rec *r)
   persona_config_t *conf = ap_get_module_config(r->server->module_config, &authn_persona_module);
   szCookieValue = extractCookie(r, conf->secret, PERSONA_COOKIE_NAME);
 
-  if (szCookieValue && APR_SUCCESS == validateCookie(r, conf->secret, szCookieValue)) {
-    /* set REMOTE_USER var for scripts language */
-    apr_table_setn(r->subprocess_env,"REMOTE_USER",r->user);
+  char *verifiedEmail = validateCookie(r, conf->secret, szCookieValue);
+  if (szCookieValue && verifiedEmail) {
+    r->user = verifiedEmail;
+    apr_table_setn(r->subprocess_env, "REMOTE_USER", verifiedEmail);
     ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Valid auth cookie found, passthrough");
     return OK;
   }
