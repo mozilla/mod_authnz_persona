@@ -58,13 +58,14 @@ header, validate the assertion, and set a short session cookie.
 
 The authentication page will then reload the desired resource.
 
-Available Configuration
-=================
+Further configuration settings
+==============================
 
-* (not yet implemented) `AuthnPersonaCookieSecret`:
-	A secret that will be used to sign cookies.  If not provided, upon server
-  start cookies will be generated automatically.  Given re-authentication
-  is automatic, it is only required to set a cookie secret if your
-  application is hosted on multiple load balanced apache servers.
+* `AuthPersonaServerSecret`:
+  A secret that will be used to sign cookies. Must be set in a server or
+  VirtualHost context. If not provided, upon server start a secret will be
+  generated automatically. Given re-authentication is automatic, it is only
+  required to set a cookie secret if your application is hosted on multiple
+  load-balanced Apache servers.
 
 (not yet implemented) A way to specifiy the IdP you require
