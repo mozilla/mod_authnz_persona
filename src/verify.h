@@ -44,10 +44,24 @@
 #include "http_protocol.h"
 #include "http_request.h"   /* for ap_hook_(check_user_id | auth_checker)*/
 #include "apr_base64.h"
-#include <yajl/yajl_tree.h>
-#include <curl/curl.h>
-#include <curl/easy.h>
 
-int processAssertion(request_rec *r, buffer_t *secret, const char *assertion);
+typedef struct _VerifyResult {
+  const char * verifiedEmail;
+  const char * errorResponse;
+} * VerifyResult;
+
+/**
+ * process an assertion:
+ *   verify an assertion, either locally or using mozilla's verification
+ *   service.  Upon success, extract an email address, upon failure,
+ *   generate a json formatted error message that can be returned to
+ *   front end javascript.
+ *
+ * RETURN VALUE:
+ *   VerifyResult structure.  Upon success has a non-NULL verifiedEmail field,
+ *   upon failure, errorResponse.
+ */
+VerifyResult processAssertion(request_rec *r, const char *assertion);
+
 
 #endif

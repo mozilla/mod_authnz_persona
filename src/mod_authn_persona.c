@@ -48,7 +48,7 @@
 #include <yajl/yajl_tree.h>
 #include <curl/curl.h>
 #include <curl/easy.h>
-
+#include <assert.h>
 
 /* apache module name */
 module AP_MODULE_DECLARE_DATA authn_persona_module;
@@ -116,18 +116,28 @@ static int Auth_persona_check_cookie(request_rec *r)
 
   // We'll trade you a valid assertion for a session cookie!
   // this is a programatic XHR request.
+
+  // XXX: only test for post - issue #10
+
   assertion = apr_table_get(r->headers_in, "X-Persona-Assertion");
   if (assertion) {
+    VerifyResult res = processAssertion(r, assertion);
+
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG
                   "Assertion received '%s'", assertion);
 
-    // as a side effect, process assertion will set a cookie
-    if (OK == processAssertion(r, conf->secret, assertion)) {
+    if (res->verifiedEmail) {
+      createSessionCookie(r, conf->secret, res->verifiedEmail);
       return DONE;
     } else {
-      // XXX: invalid assertion, what do we do?
-      ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Failed to validate Assertion");
-      return HTTP_INTERNAL_SERVER_ERROR;
+      assert(res->errorResponse != NULL);
+
+      r->status = HTTP_INTERNAL_SERVER_ERROR;
+      ap_set_content_type(r, "application/json");
+      ap_rwrite(res->errorResponse, strlen(res->errorResponse), r);
+
+      // upon assertion verification failure we return JSON explaining why
+      return DONE;
     }
   }
 

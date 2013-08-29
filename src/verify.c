@@ -54,6 +54,9 @@ struct MemoryStruct {
   request_rec *r;
 };
 
+static const char * jsonErrorResponse = "{\"status\":\"failure\", \"reason\": \"%s: %s\"}";
+
+
 /** Callback function for streaming CURL response */
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
@@ -125,11 +128,9 @@ static char *verifyAssertionRemote(request_rec *r, char *assertionText)
  *
  * TODO: local verification
  */
-int processAssertion(request_rec *r, buffer_t *secret, const char * assertion)
+VerifyResult processAssertion(request_rec *r, const char *assertion)
 {
-  ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "Submission to Persona form handler");
-
-  /* verify the assertion... */
+  VerifyResult res = apr_pcalloc(r->pool, sizeof(struct _VerifyResult));
   yajl_val parsed_result = NULL;
 
   char *assertionResult = verifyAssertionRemote(r, (char*) assertion);
@@ -138,35 +139,29 @@ int processAssertion(request_rec *r, buffer_t *secret, const char * assertion)
     char errorBuffer[256];
     parsed_result = yajl_tree_parse(assertionResult, errorBuffer, 255);
     if (!parsed_result) {
-      ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG "Error parsing Persona verification response: malformed payload: %s", errorBuffer);
-      return DECLINED;
+      res->errorResponse = apr_psprintf(r->pool, jsonErrorResponse,
+                                       "malformed payload", errorBuffer);
+      return res;
     }
-    ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG
-                  "In post_read_request; parsed JSON from verification server: %s", assertionResult);
   } else {
-    ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG
-                  "Unable to verify assertion; communication error with verification server");
-    return DECLINED;
+    // XXX: verifyAssertionRemote should return specific error message.
+    res->errorResponse = apr_psprintf(r->pool, jsonErrorResponse,
+                                     "communication error", "can't contact verification server");
+    return res;
   }
 
-  if (parsed_result) {
-    char *parsePath[2];
-    parsePath[0] = "email";
-    parsePath[1] = NULL;
-    yajl_val foundEmail = yajl_tree_get(parsed_result, (const char**)parsePath, yajl_t_any);
+  char *parsePath[2];
+  parsePath[0] = "email";
+  parsePath[1] = NULL;
+  yajl_val foundEmail = yajl_tree_get(parsed_result, (const char**)parsePath, yajl_t_any);
 
-    /** XXX if we don't have an email, something went wrong.  Should pull the error code properly!  This will
-     *  probably require refactoring this function since the local path is different.  ***/
-    if (!foundEmail || foundEmail->type != yajl_t_string) {
-      ap_log_rerror(APLOG_MARK,APLOG_ERR|APLOG_NOERRNO, 0,r,ERRTAG "Error parsing Persona login: no email in payload");
-      return DECLINED;
-    }
-    ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "In post_read_request; got email %s", foundEmail->u.string);
-    createSessionCookie(r, secret, foundEmail->u.string);
-
-    return OK;
+  if (!foundEmail || foundEmail->type != yajl_t_string) {
+    res->errorResponse = apr_pstrdup(r->pool, assertionResult);
+    return res;
   }
 
-  return DECLINED;
+  res->verifiedEmail = apr_pstrdup(r->pool, foundEmail->u.string);
+
+  return res;
 }
 
