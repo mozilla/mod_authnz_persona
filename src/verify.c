@@ -23,9 +23,6 @@
  * public domain.
  */
 
-#ifndef __VERIFY_H__
-#define __VERIFY_H__
-
 #include "defines.h"
 #include "cookie.h"
 #include "verify.h"
@@ -173,4 +170,3 @@ int processAssertion(request_rec *r, buffer_t *secret, const char * assertion)
   return DECLINED;
 }
 
-#endif
