@@ -119,7 +119,7 @@ static int Auth_persona_check_cookie(request_rec *r)
 
   // XXX: only test for post - issue #10
 
-  assertion = apr_table_get(r->headers_in, "X-Persona-Assertion");
+  assertion = apr_table_get(r->headers_in, PERSONA_ASSERTION_HEADER);
   if (assertion) {
     VerifyResult res = processAssertion(r, assertion);
 

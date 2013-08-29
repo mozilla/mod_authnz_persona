@@ -6,6 +6,7 @@
 #define PERSONA_DEFAULT_VERIFIER_URL "https://verifier.login.persona.org/verify"
 #define PERSONA_COOKIE_NAME "Persona"
 #define PERSONA_SECRET_SIZE 1024
+#define PERSONA_ASSERTION_HEADER "X-Persona-Assertion"
 
 #define ERRTAG "authn_persona: "
 #define VERSION "1.0.0"
