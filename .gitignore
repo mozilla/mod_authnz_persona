@@ -33,3 +33,17 @@ build/ltmain.sh
 build/missing
 build/mod_authn_persona.spec
 mod_authn_persona-*.tar.gz
+.libs/
+mod_authn_persona.la
+src/.libs/
+src/cookie.lo
+src/mod_authn_persona.lo
+src/verify.lo
+
+#Tests
+t/TEST
+t/conf/apache_test_config.pm
+t/conf/extra.conf
+t/conf/httpd.conf
+t/htdocs/
+t/logs/
