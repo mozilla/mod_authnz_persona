@@ -147,6 +147,7 @@ static int Auth_persona_check_cookie(request_rec *r)
   r->status = HTTP_UNAUTHORIZED;
   ap_set_content_type(r, "text/html");
   ap_rwrite(src_signin_html, sizeof(src_signin_html), r);
+  ap_rprintf(r, "var loggedInUser = undefined;\n");
   ap_rwrite(PERSONA_END_PAGE, sizeof(PERSONA_END_PAGE), r);
   return DONE;
 }
@@ -225,9 +226,17 @@ static int Auth_persona_check_auth(request_rec *r)
       char *host = apr_strtok(apr_pstrdup(r->pool, r->user), "@", &last);
       host = apr_strtok(NULL, "@", &last);
       if (strcmp(host, reqIdp)) {
-        ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
-                     ERRTAG "user '%s' is not authenticated by IdP '%s'", r->user, reqIdp);
-        return HTTP_FORBIDDEN;
+        char *script = apr_psprintf(r->pool,
+                                    "showError({\"status\": \"failure\",\"reason\": \""
+                                    "user '%s' is not authenticated by IdP '%s'\"});\n"
+                                    "var loggedInUser = '%s';",
+                                    r->user, reqIdp, r->user);
+        r->status = HTTP_FORBIDDEN;
+        ap_set_content_type(r, "text/html");
+        ap_rwrite(src_signin_html, sizeof(src_signin_html), r);
+        ap_rwrite(script, strlen(script), r);
+        ap_rwrite(PERSONA_END_PAGE, sizeof(PERSONA_END_PAGE), r);
+        return DONE;
       }
       ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r,
                     ERRTAG "user '%s' is authorized", r->user);
