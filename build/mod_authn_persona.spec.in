@@ -1,0 +1,49 @@
+Name:           @PACKAGE@
+Version:        @VERSION@
+Release:        1%{?dist}
+Summary:        Browser-ID authenticator
+
+Group:          System Environment/Daemons
+License:        Apache 2.0
+URL:            https://github.com/mozilla/@PACKAGE@
+Packager:	Philippe M. Chiasson <gozer@ectoplasm.org>
+Source:         %{name}-%{version}.tar.gz
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
+BuildRequires:  httpd-devel, pkgconfig, perl(Apache::Test)
+Requires:       httpd
+
+%description
+
+
+%prep
+%setup -q
+
+
+%build
+%configure
+make %{?_smp_mflags}
+
+
+%install
+rm -rf $RPM_BUILD_ROOT
+make install DESTDIR=$RPM_BUILD_ROOT
+rm %{buildroot}/%{_libdir}/httpd/modules/*.la
+
+%{__mkdir_p} %{buildroot}%{_sysconfdir}/httpd/conf.d
+%{__cat} << EOF > %{buildroot}%{_sysconfdir}/httpd/conf.d/%{name}.conf
+LoadModule @PACKAGE@_module modules/%{name}.so
+
+EOF
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+
+%files
+%defattr(-,root,root,-)
+%doc README*
+%{_libdir}/httpd/modules/*.so
+%config(noreplace) %{_sysconfdir}/httpd/conf.d/%{name}.conf
+
+%changelog
