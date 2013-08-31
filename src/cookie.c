@@ -29,7 +29,6 @@
 
 #include <apr_want.h>
 #include <apr_strings.h>
-#include <apr_sha1.h>
 #include <apr_base64.h>
 
 #include <httpd.h>
@@ -44,12 +43,11 @@
  * signature value. */
 static char *generateHMAC(request_rec *r, const buffer_t *secret, const char *userAddress)
 {
-  apr_sha1_ctx_t context;
-  apr_sha1_init(&context);
-  apr_sha1_update(&context, userAddress, strlen(userAddress));
-  apr_sha1_update(&context, secret->data, secret->len);
   unsigned char digest[20];
-  apr_sha1_final(digest, &context);
+  
+  if (aprx_hmac(secret->data, secret->len, userAddress, strlen(userAddress), &digest) != APR_SUCCESS) {
+    return NULL;  
+  }
 
   char * digest64 = apr_palloc(r->pool, apr_base64_encode_len(20));
   apr_base64_encode(digest64, (char*)digest, 20);

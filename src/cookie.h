@@ -22,6 +22,7 @@
 
 #include <httpd.h>
 #include "defines.h"
+#include "hmac.h"
 
 /* Look through the 'Cookie' headers for the indicated cookie; extract it
  * and URL-unescape it. Return the cookie on success, NULL on failure. */
