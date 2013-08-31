@@ -40,9 +40,9 @@
 #include "cookie.h"
 #include "defines.h"
 
-/** Generates a signature with the given inputs, returning a Base64-encoded
+/** Generates a HMAC with the given inputs, returning a Base64-encoded
  * signature value. */
-static char *generateSignature(request_rec *r, const buffer_t *secret, const char *userAddress)
+static char *generateHMAC(request_rec *r, const buffer_t *secret, const char *userAddress)
 {
   apr_sha1_ctx_t context;
   apr_sha1_init(&context);
@@ -104,7 +104,7 @@ char* validateCookie(request_rec *r, const buffer_t *secret, const char *szCooki
     return NULL;
   }
 
-  char *digest64 = generateSignature(r, secret, addr);
+  char *digest64 = generateHMAC(r, secret, addr);
   ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "Got cookie: email is %s; expected digest is %s; got digest %s",
                 addr, digest64, sig);
 
@@ -120,7 +120,7 @@ char* validateCookie(request_rec *r, const buffer_t *secret, const char *szCooki
 /** Create a session cookie with a given identity */
 void createSessionCookie(request_rec *r, const buffer_t *secret, const char *identity)
 {
-  char *digest64 = generateSignature(r, secret, identity);
+  char *digest64 = generateHMAC(r, secret, identity);
 
   /* syntax of cookie is identity|signature */
   apr_table_set(r->err_headers_out, "Set-Cookie",
