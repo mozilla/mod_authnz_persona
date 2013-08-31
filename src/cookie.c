@@ -43,14 +43,14 @@
  * signature value. */
 static char *generateHMAC(request_rec *r, const buffer_t *secret, const char *userAddress)
 {
-  unsigned char digest[20];
+  unsigned char digest[APRX_HMAC_DIGESTSIZE];
   
   if (aprx_hmac(secret->data, secret->len, userAddress, strlen(userAddress), &digest) != APR_SUCCESS) {
     return NULL;  
   }
 
-  char * digest64 = apr_palloc(r->pool, apr_base64_encode_len(20));
-  apr_base64_encode(digest64, (char*)digest, 20);
+  char * digest64 = apr_palloc(r->pool, apr_base64_encode_len(APRX_HMAC_DIGESTSIZE));
+  apr_base64_encode(digest64, (char*)digest, APRX_HMAC_DIGESTSIZE);
   return digest64;
 }
 
