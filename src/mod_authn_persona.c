@@ -103,24 +103,12 @@ static int Auth_persona_check_cookie(request_rec *r)
     return HTTP_UNAUTHORIZED;
   }
 
-  // if there's a valid cookie, allow the user throught
-  persona_config_t *conf = ap_get_module_config(r->server->module_config, &authn_persona_module);
-  szCookieValue = extractCookie(r, conf->secret, PERSONA_COOKIE_NAME);
-
-  char *verifiedEmail = NULL;
-  if (szCookieValue &&
-      (verifiedEmail = validateCookie(r, conf->secret, szCookieValue))) {
-    r->user = verifiedEmail;
-    apr_table_setn(r->subprocess_env, "REMOTE_USER", verifiedEmail);
-    ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Valid auth cookie found, passthrough");
-    return OK;
-  }
-
   // We'll trade you a valid assertion for a session cookie!
   // this is a programatic XHR request.
 
   // XXX: only test for post - issue #10
 
+  persona_config_t *conf = ap_get_module_config(r->server->module_config, &authn_persona_module);
   assertion = apr_table_get(r->headers_in, PERSONA_ASSERTION_HEADER);
   if (assertion) {
     VerifyResult res = processAssertion(r, assertion);
@@ -141,6 +129,18 @@ static int Auth_persona_check_cookie(request_rec *r)
       // upon assertion verification failure we return JSON explaining why
       return DONE;
     }
+  }
+
+  // if there's a valid cookie, allow the user throught
+  szCookieValue = extractCookie(r, conf->secret, PERSONA_COOKIE_NAME);
+
+  char *verifiedEmail = NULL;
+  if (szCookieValue &&
+      (verifiedEmail = validateCookie(r, conf->secret, szCookieValue))) {
+    r->user = verifiedEmail;
+    apr_table_setn(r->subprocess_env, "REMOTE_USER", verifiedEmail);
+    ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Valid auth cookie found, passthrough");
+    return OK;
   }
 
   ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Persona cookie not found; not authorized! RemoteIP:%s",szRemoteIP);
