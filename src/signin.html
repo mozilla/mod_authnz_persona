@@ -176,40 +176,42 @@ body.loading a span:after  { display: none; }
 <script>
 var processingAssertion = false;
 
-navigator.id.watch({
-  loggedInUser: undefined,
-  onlogin: function(assertion) {
-    processingAssertion = true;
-    // now send an ajax request back, directly to the
-    // processing middleware
-    reqwest({
-      url: document.location.href,
-      method: 'post',
-      type: 'json',
-      success: function (resp) {
-        // message errors to the user?
-        document.location.reload();
-      },
-      error: function(response) {
-        var error = response.responseText;
-        try {
-          // XXX - reqwest should be parsing this for us.
-          error = JSON.parse(response.response).reason;
-        } catch(e) {}
-        alert("failed to sign you in: " + error);
-      },
-      headers: {
-        "X-Persona-Assertion": assertion
+window.onload = function() {
+  navigator.id.watch({
+    loggedInUser: undefined,
+    onlogin: function(assertion) {
+      processingAssertion = true;
+      // now send an ajax request back, directly to the
+      // processing middleware
+      reqwest({
+        url: document.location.href,
+        method: 'post',
+        type: 'json',
+        success: function (resp) {
+          // message errors to the user?
+          document.location.reload();
+        },
+        error: function(response) {
+          var error = response.responseText;
+          try {
+            // XXX - reqwest should be parsing this for us.
+            error = JSON.parse(response.response).reason;
+          } catch(e) {}
+          alert("failed to sign you in: " + error);
+        },
+        headers: {
+          "X-Persona-Assertion": assertion
+        }
+      });
+    },
+    onlogout: function() { },
+    onready: function() {
+      if (!processingAssertion) {
+        document.getElementsByTagName('body')[0].className = '';
       }
-    });
-  },
-  onlogout: function() { },
-  onready: function() {
-    if (!processingAssertion) {
-      document.getElementsByTagName('body')[0].className = '';
     }
-  }
-});
+  });
+};
 
 document.getElementById('auth').onclick = function() {
   navigator.id.request();
