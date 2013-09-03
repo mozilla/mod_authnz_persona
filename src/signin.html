@@ -167,52 +167,79 @@ background: #cad2d9;
 }
 body.loading a span:after  { display: none; }
 
+div#error {
+    color: rgb(255, 255, 255);
+    font-weight: bold;
+    text-shadow: 0px 1px rgb(51, 51, 51);
+    text-align: center;
+    line-height: 16px;
+    background-color: rgb(170, 20, 1);
+    background-image: -moz-linear-gradient(center top , rgba(218, 81, 50, 0.9), rgb(169, 19, 0));
+    border-radius: 4px;
+    padding: 10px 15px;
+    box-shadow: 0px 1px rgb(102, 102, 102);
+    position: relative;
+    display: inline-block;
+    visibility: hidden;
+}
+
 </style>
 </head>
 <body class="loading">
+<div id="error"></div>
 <h1>Please sign in to continue.</h1>
 <a id="auth"><img src="data:image/gif;base64,R0lGODlhEAAQAPYAAN3d3f///+Li4urq6vHx8fX19fX19e/v7+jo6OHh4ejo6Pn5+fj4+Pf39/b29vX19fDw8OXl5fr6+u/v79/f39/f3+Tk5Ozs7PPz8/Hx8eXl5eLi4vb29vv7++vr6+fn5/Ly8u3t7eDg4Ozs7Pz8/PDw8Onp6fDw8Obm5vT09Pz8/Ofn5+rq6vr6+v39/d/f397e3u7u7uzs7N7e3u3t7ejo6N3d3d3d3eXl5ePj493d3eLi4ufn597e3uLi4uDg4OHh4ePj4+Tk5OXl5eDg4OHh4d7e3uHh4e7u7ubm5ubm5vT09PPz8/Ly8vHx8fX19fb29uTk5O7u7vf399/f3/j4+Ovr6/Ly8vj4+Pr6+unp6fPz8/v7++zs7PHx8ff39+Tk5OPj4+Dg4Obm5u3t7evr6+np6fLy8uvr6/T09PT09Pn5+ejo6Pv7+/z8/Ofn5/39/enp6fn5+fv7+/b29u7u7vj4+Pz8/O/v7/n5+fPz8+/v7+3t7QAAAAAAAAAAACH/C05FVFNDQVBFMi4wAwEAAAAh/hpDcmVhdGVkIHdpdGggYWpheGxvYWQuaW5mbwAh+QQJCgAAACwAAAAAEAAQAAAHjYAAgoOEhYUbIykthoUIHCQqLoI2OjeFCgsdJSsvgjcwPTaDAgYSHoY2FBSWAAMLE4wAPT89ggQMEbEzQD+CBQ0UsQA7RYIGDhWxN0E+ggcPFrEUQjuCCAYXsT5DRIIJEBgfhjsrFkaDERkgJhswMwk4CDzdhBohJwcxNB4sPAmMIlCwkOGhRo5gwhIGAgAh+QQJCgAAACwAAAAAEAAQAAAHjIAAgoOEhYU7A1dYDFtdG4YAPBhVC1ktXCRfJoVKT1NIERRUSl4qXIRHBFCbhTKFCgYjkII3g0hLUbMAOjaCBEw9ukZGgidNxLMUFYIXTkGzOmLLAEkQCLNUQMEAPxdSGoYvAkS9gjkyNEkJOjovRWAb04NBJlYsWh9KQ2FUkFQ5SWqsEJIAhq6DAAIBACH5BAkKAAAALAAAAAAQABAAAAeJgACCg4SFhQkKE2kGXiwChgBDB0sGDw4NDGpshTheZ2hRFRVDUmsMCIMiZE48hmgtUBuCYxBmkAAQbV2CLBM+t0puaoIySDC3VC4tgh40M7eFNRdH0IRgZUO3NjqDFB9mv4U6Pc+DRzUfQVQ3NzAULxU2hUBDKENCQTtAL9yGRgkbcvggEq9atUAAIfkECQoAAAAsAAAAABAAEAAAB4+AAIKDhIWFPygeEE4hbEeGADkXBycZZ1tqTkqFQSNIbBtGPUJdD088g1QmMjiGZl9MO4I5ViiQAEgMA4JKLAm3EWtXgmxmOrcUElWCb2zHkFQdcoIWPGK3Sm1LgkcoPrdOKiOCRmA4IpBwDUGDL2A5IjCCN/QAcYUURQIJIlQ9MzZu6aAgRgwFGAFvKRwUCAAh+QQJCgAAACwAAAAAEAAQAAAHjIAAgoOEhYUUYW9lHiYRP4YACStxZRc0SBMyFoVEPAoWQDMzAgolEBqDRjg8O4ZKIBNAgkBjG5AAZVtsgj44VLdCanWCYUI3txUPS7xBx5AVDgazAjC3Q3ZeghUJv5B1cgOCNmI/1YUeWSkCgzNUFDODKydzCwqFNkYwOoIubnQIt244MzDC1q2DggIBACH5BAkKAAAALAAAAAAQABAAAAeJgACCg4SFhTBAOSgrEUEUhgBUQThjSh8IcQo+hRUbYEdUNjoiGlZWQYM2QD4vhkI0ZWKCPQmtkG9SEYJURDOQAD4HaLuyv0ZeB4IVj8ZNJ4IwRje/QkxkgjYz05BdamyDN9uFJg9OR4YEK1RUYzFTT0qGdnduXC1Zchg8kEEjaQsMzpTZ8avgoEAAIfkECQoAAAAsAAAAABAAEAAAB4iAAIKDhIWFNz0/Oz47IjCGADpURAkCQUI4USKFNhUvFTMANxU7KElAhDA9OoZHH0oVgjczrJBRZkGyNpCCRCw8vIUzHmXBhDM0HoIGLsCQAjEmgjIqXrxaBxGCGw5cF4Y8TnybglprLXhjFBUWVnpeOIUIT3lydg4PantDz2UZDwYOIEhgzFggACH5BAkKAAAALAAAAAAQABAAAAeLgACCg4SFhjc6RhUVRjaGgzYzRhRiREQ9hSaGOhRFOxSDQQ0uj1RBPjOCIypOjwAJFkSCSyQrrhRDOYILXFSuNkpjggwtvo86H7YAZ1korkRaEYJlC3WuESxBggJLWHGGFhcIxgBvUHQyUT1GQWwhFxuFKyBPakxNXgceYY9HCDEZTlxA8cOVwUGBAAA7AAAAAAAAAAAA" width="16" height="16" alt="Progress indicator"><span>Sign in with your email</span></a>
 </body>
 <script>
+
 var processingAssertion = false;
 
-navigator.id.watch({
-  loggedInUser: undefined,
-  onlogin: function(assertion) {
-    processingAssertion = true;
-    // now send an ajax request back, directly to the
-    // processing middleware
-    reqwest({
-      url: document.location.href,
-      method: 'post',
-      type: 'json',
-      success: function (resp) {
-        // message errors to the user?
-        document.location.reload();
-      },
-      error: function(response) {
-        var error = response.responseText;
-        try {
-          // XXX - reqwest should be parsing this for us.
-          error = JSON.parse(response.response).reason;
-        } catch(e) {}
-        alert("failed to sign you in: " + error);
-      },
-      headers: {
-        "X-Persona-Assertion": assertion
+window.onload = function() {
+  navigator.id.watch({
+    loggedInUser: loggedInUser,
+    onlogin: function(assertion) {
+      processingAssertion = true;
+      // now send an ajax request back, directly to the
+      // processing middleware
+      reqwest({
+        url: document.location.href,
+        method: 'post',
+        type: 'json',
+        success: function (resp) {
+          // message errors to the user?
+          document.location.reload();
+        },
+        error: function(response) {
+          var error = response.responseText;
+          try {
+            // XXX - reqwest should be parsing this for us.
+            error = JSON.parse(response.response).reason;
+          } catch(e) {}
+          alert("failed to sign you in: " + error);
+        },
+        headers: {
+          "X-Persona-Assertion": assertion
+        }
+      });
+    },
+    onlogout: function() { },
+    onready: function() {
+      if (!processingAssertion) {
+        document.getElementsByTagName('body')[0].className = '';
       }
-    });
-  },
-  onlogout: function() { },
-  onready: function() {
-    if (!processingAssertion) {
-      document.getElementsByTagName('body')[0].className = '';
     }
-  }
-});
+  });
+};
 
 document.getElementById('auth').onclick = function() {
   navigator.id.request();
 };
+
+function showError(rsp) {
+  var div = document.getElementById('error');
+  div.innerHTML = rsp.reason;
+  div.style.visibility = 'visible';
+}
+
 </script>
-</html>
+<script>

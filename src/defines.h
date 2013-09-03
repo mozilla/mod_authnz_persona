@@ -7,6 +7,7 @@
 #define PERSONA_COOKIE_NAME "Persona"
 #define PERSONA_SECRET_SIZE 1024
 #define PERSONA_ASSERTION_HEADER "X-Persona-Assertion"
+#define PERSONA_END_PAGE "\n</script>\n</html>\n"
 
 #define ERRTAG "authn_persona: "
 #define VERSION "1.0.0"
