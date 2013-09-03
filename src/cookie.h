@@ -25,6 +25,7 @@
 
 typedef struct _Cookie {
   const char *verifiedEmail; // email that was verified
+  const char *identityIssuer; // domain that issued the identity
 }* Cookie;
 
 /* Look through the 'Cookie' headers for the indicated cookie; extract it

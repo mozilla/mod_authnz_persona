@@ -122,6 +122,7 @@ static int Auth_persona_check_cookie(request_rec *r)
                     res->verifiedEmail, res->identityIssuer);
       Cookie cookie = apr_pcalloc(r->pool, sizeof(struct _Cookie));
       cookie->verifiedEmail = res->verifiedEmail;
+      cookie->identityIssuer = res->identityIssuer;
       sendSignedCookie(r, conf->secret, cookie);
       return DONE;
     } else {
@@ -143,6 +144,7 @@ static int Auth_persona_check_cookie(request_rec *r)
   if (szCookieValue &&
       (cookie = validateCookie(r, conf->secret, szCookieValue))) {
     r->user = (char *) cookie->verifiedEmail;
+    apr_table_setn(r->notes, PERSONA_ISSUER_NOTE, cookie->identityIssuer);
     apr_table_setn(r->subprocess_env, "REMOTE_USER", cookie->verifiedEmail);
     ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Valid auth cookie found, passthrough");
     return OK;
@@ -227,15 +229,13 @@ static int Auth_persona_check_auth(request_rec *r)
     // persona-idp: check host part of user name
     else if (!strcmp("persona-idp", szRequire_cmd)) {
       char *reqIdp = ap_getword_conf(r->pool, &szRequireLine);
-      char *last = NULL;
-      char *host = apr_strtok(apr_pstrdup(r->pool, r->user), "@", &last);
-      host = apr_strtok(NULL, "@", &last);
-      if (strcmp(host, reqIdp)) {
+      const char *issuer = apr_table_get(r->notes, PERSONA_ISSUER_NOTE);
+      if (!issuer || strcmp(issuer, reqIdp)) {
         char *script = apr_psprintf(r->pool,
                                     "showError({\"status\": \"failure\",\"reason\": \""
-                                    "user '%s' is not authenticated by IdP '%s'\"});\n"
+                                    "user '%s' is not authenticated by IdP '%s' (but by '%s')\"});\n"
                                     "var loggedInUser = '%s';",
-                                    r->user, reqIdp, r->user);
+                                    r->user, reqIdp, (issuer ? issuer : "unknown"), r->user);
         r->status = HTTP_FORBIDDEN;
         ap_set_content_type(r, "text/html");
         ap_rwrite(src_signin_html, sizeof(src_signin_html), r);
