@@ -42,11 +42,13 @@
 
 /** Generates a signature with the given inputs, returning a Base64-encoded
  * signature value. */
-static char *generateSignature(request_rec *r, const buffer_t *secret, const char *userAddress)
+static char *generateSignature(request_rec *r, const buffer_t *secret,
+                               const char *userAddress, const char *issuer)
 {
   apr_sha1_ctx_t context;
   apr_sha1_init(&context);
   apr_sha1_update(&context, userAddress, strlen(userAddress));
+  apr_sha1_update(&context, issuer, strlen(issuer));
   apr_sha1_update(&context, secret->data, secret->len);
   unsigned char digest[20];
   apr_sha1_final(digest, &context);
@@ -85,7 +87,7 @@ char * extractCookie(request_rec *r, const buffer_t *secret, const char *szCooki
 
   /* dup the value string found in apache pool and set the result pool ptr to szCookie ptr */
   if (!(szCookie = apr_pstrndup(r->pool, szRaw_cookie, szRaw_cookie_end-szRaw_cookie))) return 0;
-  /* unescape the value string */ 
+  /* unescape the value string */
   if (ap_unescape_url(szCookie) != 0) return 0;
 
   ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "finished cookie scan, returning %s", szCookie);
@@ -94,17 +96,25 @@ char * extractCookie(request_rec *r, const buffer_t *secret, const char *szCooki
 }
 
 /* Check the cookie and make sure it is valid */
-char* validateCookie(request_rec *r, const buffer_t *secret, const char *szCookieValue)
+Cookie validateCookie(request_rec *r, const buffer_t *secret, const char *szCookieValue)
 {
+
   /* split at | */
+  char *iss = NULL;
   char *sig = NULL;
-  char *addr = apr_strtok((char *) szCookieValue, "|", &sig);
+  char *addr = apr_strtok((char *) szCookieValue, "|", &iss);
   if (!addr) {
-    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "malformed Persona cookie");
+    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "malformed Persona cookie, can't extract email");
     return NULL;
   }
 
-  char *digest64 = generateSignature(r, secret, addr);
+  iss = apr_strtok((char *) iss, "|", &sig);
+  if (!iss) {
+    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "malformed Persona cookie, can't extract issuer");
+    return NULL;
+  }
+
+  char *digest64 = generateSignature(r, secret, addr, iss);
   ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "Got cookie: email is %s; expected digest is %s; got digest %s",
                 addr, digest64, sig);
 
@@ -114,16 +124,19 @@ char* validateCookie(request_rec *r, const buffer_t *secret, const char *szCooki
     return NULL;
   }
 
-  return addr;
+  Cookie c = apr_pcalloc(r->pool, sizeof(struct _Cookie));
+  c->verifiedEmail = addr;
+  c->identityIssuer = iss;
+  return c;
 }
 
 /** Create a session cookie with a given identity */
-void createSessionCookie(request_rec *r, const buffer_t *secret, const char *identity)
+void sendSignedCookie(request_rec *r, const buffer_t *secret, const Cookie cookie)
 {
-  char *digest64 = generateSignature(r, secret, identity);
-
+  char *digest64 = generateSignature(r, secret, cookie->verifiedEmail, cookie->identityIssuer);
   /* syntax of cookie is identity|signature */
   apr_table_set(r->err_headers_out, "Set-Cookie",
-                apr_psprintf(r->pool, "%s=%s|%s; Path=/",
-                             PERSONA_COOKIE_NAME, identity, digest64));
+                apr_psprintf(r->pool, "%s=%s|%s|%s; Path=/",
+                             PERSONA_COOKIE_NAME, cookie->verifiedEmail,
+                             cookie->identityIssuer, digest64));
 }
