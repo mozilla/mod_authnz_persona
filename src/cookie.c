@@ -94,7 +94,7 @@ char * extractCookie(request_rec *r, const buffer_t *secret, const char *szCooki
 }
 
 /* Check the cookie and make sure it is valid */
-char* validateCookie(request_rec *r, const buffer_t *secret, const char *szCookieValue)
+Cookie validateCookie(request_rec *r, const buffer_t *secret, const char *szCookieValue)
 {
   /* split at | */
   char *sig = NULL;
@@ -114,7 +114,9 @@ char* validateCookie(request_rec *r, const buffer_t *secret, const char *szCooki
     return NULL;
   }
 
-  return addr;
+  Cookie c = apr_pcalloc(r->pool, sizeof(struct _Cookie));
+  c->verifiedEmail = addr;
+  return c;
 }
 
 /** Create a session cookie with a given identity */

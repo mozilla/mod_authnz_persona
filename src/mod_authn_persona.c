@@ -137,11 +137,11 @@ static int Auth_persona_check_cookie(request_rec *r)
   // if there's a valid cookie, allow the user throught
   szCookieValue = extractCookie(r, conf->secret, PERSONA_COOKIE_NAME);
 
-  char *verifiedEmail = NULL;
+  Cookie cookie = NULL;
   if (szCookieValue &&
-      (verifiedEmail = validateCookie(r, conf->secret, szCookieValue))) {
-    r->user = verifiedEmail;
-    apr_table_setn(r->subprocess_env, "REMOTE_USER", verifiedEmail);
+      (cookie = validateCookie(r, conf->secret, szCookieValue))) {
+    r->user = (char *) cookie->verifiedEmail;
+    apr_table_setn(r->subprocess_env, "REMOTE_USER", cookie->verifiedEmail);
     ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Valid auth cookie found, passthrough");
     return OK;
   }
