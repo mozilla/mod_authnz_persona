@@ -120,7 +120,9 @@ static int Auth_persona_check_cookie(request_rec *r)
       ap_log_rerror(APLOG_MARK, APLOG_DEBUG | APLOG_NOERRNO, 0, r, ERRTAG
                     "email '%s' verified, vouched for by issuer '%s'",
                     res->verifiedEmail, res->identityIssuer);
-      sendSignedCookie(r, conf->secret, res->verifiedEmail);
+      Cookie cookie = apr_pcalloc(r->pool, sizeof(struct _Cookie));
+      cookie->verifiedEmail = res->verifiedEmail;
+      sendSignedCookie(r, conf->secret, cookie);
       return DONE;
     } else {
       assert(res->errorResponse != NULL);

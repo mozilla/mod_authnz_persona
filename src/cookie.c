@@ -120,12 +120,11 @@ Cookie validateCookie(request_rec *r, const buffer_t *secret, const char *szCook
 }
 
 /** Create a session cookie with a given identity */
-void sendSignedCookie(request_rec *r, const buffer_t *secret, const char *identity)
+void sendSignedCookie(request_rec *r, const buffer_t *secret, const Cookie cookie)
 {
-  char *digest64 = generateSignature(r, secret, identity);
-
+  char *digest64 = generateSignature(r, secret, cookie->verifiedEmail);
   /* syntax of cookie is identity|signature */
   apr_table_set(r->err_headers_out, "Set-Cookie",
                 apr_psprintf(r->pool, "%s=%s|%s; Path=/",
-                             PERSONA_COOKIE_NAME, identity, digest64));
+                             PERSONA_COOKIE_NAME, cookie->verifiedEmail, digest64));
 }
