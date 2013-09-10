@@ -103,24 +103,12 @@ static int Auth_persona_check_cookie(request_rec *r)
     return HTTP_UNAUTHORIZED;
   }
 
-  // if there's a valid cookie, allow the user throught
-  persona_config_t *conf = ap_get_module_config(r->server->module_config, &authn_persona_module);
-  szCookieValue = extractCookie(r, conf->secret, PERSONA_COOKIE_NAME);
-
-  char *verifiedEmail = NULL;
-  if (szCookieValue &&
-      (verifiedEmail = validateCookie(r, conf->secret, szCookieValue))) {
-    r->user = verifiedEmail;
-    apr_table_setn(r->subprocess_env, "REMOTE_USER", verifiedEmail);
-    ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Valid auth cookie found, passthrough");
-    return OK;
-  }
-
   // We'll trade you a valid assertion for a session cookie!
   // this is a programatic XHR request.
 
   // XXX: only test for post - issue #10
 
+  persona_config_t *conf = ap_get_module_config(r->server->module_config, &authn_persona_module);
   assertion = apr_table_get(r->headers_in, PERSONA_ASSERTION_HEADER);
   if (assertion) {
     VerifyResult res = processAssertion(r, assertion);
@@ -129,7 +117,13 @@ static int Auth_persona_check_cookie(request_rec *r)
                   "Assertion received '%s'", assertion);
 
     if (res->verifiedEmail) {
-      createSessionCookie(r, conf->secret, res->verifiedEmail);
+      ap_log_rerror(APLOG_MARK, APLOG_DEBUG | APLOG_NOERRNO, 0, r, ERRTAG
+                    "email '%s' verified, vouched for by issuer '%s'",
+                    res->verifiedEmail, res->identityIssuer);
+      Cookie cookie = apr_pcalloc(r->pool, sizeof(struct _Cookie));
+      cookie->verifiedEmail = res->verifiedEmail;
+      cookie->identityIssuer = res->identityIssuer;
+      sendSignedCookie(r, conf->secret, cookie);
       return DONE;
     } else {
       assert(res->errorResponse != NULL);
@@ -143,10 +137,25 @@ static int Auth_persona_check_cookie(request_rec *r)
     }
   }
 
+  // if there's a valid cookie, allow the user throught
+  szCookieValue = extractCookie(r, conf->secret, PERSONA_COOKIE_NAME);
+
+  Cookie cookie = NULL;
+  if (szCookieValue &&
+      (cookie = validateCookie(r, conf->secret, szCookieValue))) {
+    r->user = (char *) cookie->verifiedEmail;
+    apr_table_setn(r->notes, PERSONA_ISSUER_NOTE, cookie->identityIssuer);
+    apr_table_setn(r->subprocess_env, "REMOTE_USER", cookie->verifiedEmail);
+    ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Valid auth cookie found, passthrough");
+    return OK;
+  }
+
   ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Persona cookie not found; not authorized! RemoteIP:%s",szRemoteIP);
   r->status = HTTP_UNAUTHORIZED;
   ap_set_content_type(r, "text/html");
   ap_rwrite(src_signin_html, sizeof(src_signin_html), r);
+  ap_rprintf(r, "var loggedInUser = undefined;\n");
+  ap_rwrite(PERSONA_END_PAGE, sizeof(PERSONA_END_PAGE), r);
   return DONE;
 }
 
@@ -220,13 +229,19 @@ static int Auth_persona_check_auth(request_rec *r)
     // persona-idp: check host part of user name
     else if (!strcmp("persona-idp", szRequire_cmd)) {
       char *reqIdp = ap_getword_conf(r->pool, &szRequireLine);
-      char *last = NULL;
-      char *host = apr_strtok(apr_pstrdup(r->pool, r->user), "@", &last);
-      host = apr_strtok(NULL, "@", &last);
-      if (strcmp(host, reqIdp)) {
-        ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
-                     ERRTAG "user '%s' is not authenticated by IdP '%s'", r->user, reqIdp);
-        return HTTP_FORBIDDEN;
+      const char *issuer = apr_table_get(r->notes, PERSONA_ISSUER_NOTE);
+      if (!issuer || strcmp(issuer, reqIdp)) {
+        char *script = apr_psprintf(r->pool,
+                                    "showError({\"status\": \"failure\",\"reason\": \""
+                                    "user '%s' is not authenticated by IdP '%s' (but by '%s')\"});\n"
+                                    "var loggedInUser = '%s';",
+                                    r->user, reqIdp, (issuer ? issuer : "unknown"), r->user);
+        r->status = HTTP_FORBIDDEN;
+        ap_set_content_type(r, "text/html");
+        ap_rwrite(src_signin_html, sizeof(src_signin_html), r);
+        ap_rwrite(script, strlen(script), r);
+        ap_rwrite(PERSONA_END_PAGE, sizeof(PERSONA_END_PAGE), r);
+        return DONE;
       }
       ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r,
                     ERRTAG "user '%s' is authorized", r->user);

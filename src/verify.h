@@ -46,7 +46,8 @@
 #include "apr_base64.h"
 
 typedef struct _VerifyResult {
-  const char * verifiedEmail;
+  const char * verifiedEmail; // email that was verified
+  const char * identityIssuer; // domain that issued the identity
   const char * errorResponse;
 } * VerifyResult;
 
@@ -58,10 +59,10 @@ typedef struct _VerifyResult {
  *   front end javascript.
  *
  * RETURN VALUE:
- *   VerifyResult structure.  Upon success has a non-NULL verifiedEmail field,
- *   upon failure, errorResponse.
+ *   VerifyResult structure.
+ *    - Upon success has non-NULL verifiedEmail and identityIssuer fields.
+ *    - Upon failure, has non-NULL errorResponse.
  */
 VerifyResult processAssertion(request_rec *r, const char *assertion);
-
 
 #endif

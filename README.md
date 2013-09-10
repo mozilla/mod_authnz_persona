@@ -70,4 +70,8 @@ Further configuration settings
   required to set a cookie secret if your application is hosted on multiple
   load-balanced Apache servers.
 
-(not yet implemented) A way to specifiy the IdP you require
+* `Require persona-idp`:
+  Only allow users with email addresses backed by the given Identity Provider.
+  Note that this will often, but not necessarily, be the host part of the
+  verified email address, in the case of email addresses backed by a secondary
+  IdP (like the fallback IdP or a bridging IdP).

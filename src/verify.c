@@ -153,15 +153,24 @@ VerifyResult processAssertion(request_rec *r, const char *assertion)
   char *parsePath[2];
   parsePath[0] = "email";
   parsePath[1] = NULL;
-  yajl_val foundEmail = yajl_tree_get(parsed_result, (const char**)parsePath, yajl_t_any);
+  yajl_val foundEmail = yajl_tree_get(parsed_result, (const char**)parsePath, yajl_t_string);
 
-  if (!foundEmail || foundEmail->type != yajl_t_string) {
+  if (!foundEmail) {
+    res->errorResponse = apr_pstrdup(r->pool, assertionResult);
+    return res;
+  }
+
+  parsePath[0] = "issuer";
+  parsePath[1] = NULL;
+  yajl_val identityIssuer = yajl_tree_get(parsed_result, (const char**)parsePath, yajl_t_string);
+
+  if (!identityIssuer) {
     res->errorResponse = apr_pstrdup(r->pool, assertionResult);
     return res;
   }
 
   res->verifiedEmail = apr_pstrdup(r->pool, foundEmail->u.string);
+  res->identityIssuer = apr_pstrdup(r->pool, identityIssuer->u.string);
 
   return res;
 }
-
