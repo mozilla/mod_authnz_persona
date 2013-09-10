@@ -41,14 +41,14 @@
 
 /** Generates a HMAC with the given inputs, returning a Base64-encoded
  * signature value. */
-static char *generateSignature(request_rec *r, const buffer_t *secret,
+static char *generateHMAC(request_rec *r, const buffer_t *secret,
                                const char *userAddress, const char *issuer)
 {
   char *data;
   unsigned char digest[APRX_HMAC_DIGESTSIZE];
   char *digest64;
 
-  data = apr_pstrcat(r->pool, userAddress, issuer);
+  data = apr_pstrcat(r->pool, userAddress, issuer, NULL);
 
   if (aprx_hmac(secret->data, secret->len, data, strlen(data), &digest) != APR_SUCCESS) {
     return NULL;  
