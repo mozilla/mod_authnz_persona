@@ -84,6 +84,10 @@ static int user_in_file(request_rec *r, char *username, char *filename)
   return found;
 }
 
+static int persona_authn_active(request_rec *r) {
+  return (strncmp("Persona", ap_auth_type(r), 9) == 0) ? 1 : 0;
+}
+
 /**************************************************
  * Authentication phase
  *
@@ -95,13 +99,10 @@ static int Auth_persona_check_cookie(request_rec *r)
   char *szRemoteIP=NULL;
   const char *assertion=NULL;
 
-  ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth_persona_check_cookie");
-
-  ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG  "AuthType '%s'", ap_auth_type(r));
-  if (strncmp("Persona", ap_auth_type(r), 9) != 0) {
-    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth type must be 'Persona'");
-    return HTTP_UNAUTHORIZED;
+  if (!persona_authn_active(r)) {
+    return DECLINED;
   }
+  ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth_persona_check_cookie");
 
   // We'll trade you a valid assertion for a session cookie!
   // this is a programatic XHR request.
@@ -177,6 +178,9 @@ static int Auth_persona_check_auth(request_rec *r)
   char *szFileName;
   char *szRequire_cmd;
 
+  if (!persona_authn_active(r)) {
+    return DECLINED;
+  }
   ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth_persona_check_auth");
 
   /* get require line */
