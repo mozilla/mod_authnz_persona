@@ -7,6 +7,6 @@
 
 #define APRX_HMAC_DIGESTSIZE APR_SHA1_DIGESTSIZE
 
-apr_status_t aprx_hmac(const void *key, apr_size_t keylen, const char *data, apr_size_t datalen, void *result);
+void aprx_hmac(const void *key, apr_size_t keylen, const char *data, apr_size_t datalen, void *result);
 
 #endif

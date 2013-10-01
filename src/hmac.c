@@ -18,7 +18,7 @@ static void aprx_mxor(void *, const void *, apr_size_t);
  *
  */
 
-apr_status_t aprx_hmac(const void *key, apr_size_t keylen, const char *data, apr_size_t datalen, void *result) {
+void aprx_hmac(const void *key, apr_size_t keylen, const char *data, apr_size_t datalen, void *result) {
 
   apr_sha1_ctx_t inner;
   apr_sha1_ctx_t outer;
@@ -55,8 +55,6 @@ apr_status_t aprx_hmac(const void *key, apr_size_t keylen, const char *data, apr
   apr_sha1_update_binary(&outer, keypad, APRX_HMAC_BLOCKSIZE);
   apr_sha1_update_binary(&outer, inner_digest, APR_SHA1_DIGESTSIZE);
   apr_sha1_final(result, &outer);
-
-  return APR_SUCCESS;
 
 }
 
