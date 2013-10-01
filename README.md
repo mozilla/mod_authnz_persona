@@ -19,13 +19,15 @@ APXS_PATH variable to your apxs or apxs2 as appropriate)
 
 Configure the module:
 
-    LoadModule authn_persona_module modules/authn_persona_module.so
+    LoadModule authn_persona_module modules/mod_authn_persona.so
 
     <Location />
        AuthType Persona
        Require valid-user # XXX: figure out how this should work
        # Or, require users with host/IdP example.com:
        # Require persona-idp example.com
+       # Or, require specific users
+       # Require user user@example.com
     </Location>
 
 This will cause the module to require Persona authentication for all
