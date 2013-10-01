@@ -29,7 +29,6 @@
 
 #include <apr_want.h>
 #include <apr_strings.h>
-#include <apr_sha1.h>
 #include <apr_base64.h>
 
 #include <httpd.h>
@@ -40,21 +39,19 @@
 #include "cookie.h"
 #include "defines.h"
 
-/** Generates a signature with the given inputs, returning a Base64-encoded
+/** Generates a HMAC with the given inputs, returning a Base64-encoded
  * signature value. */
-static char *generateSignature(request_rec *r, const buffer_t *secret,
-                               const char *userAddress, const char *issuer)
+static char *generateHMAC(request_rec *r, const buffer_t *secret,
+                          const char *userAddress, const char *issuer)
 {
-  apr_sha1_ctx_t context;
-  apr_sha1_init(&context);
-  apr_sha1_update(&context, userAddress, strlen(userAddress));
-  apr_sha1_update(&context, issuer, strlen(issuer));
-  apr_sha1_update(&context, secret->data, secret->len);
-  unsigned char digest[20];
-  apr_sha1_final(digest, &context);
+  char *data;
+  unsigned char digest[HMAC_DIGESTSIZE];
+  char *digest64;
 
-  char * digest64 = apr_palloc(r->pool, apr_base64_encode_len(20));
-  apr_base64_encode(digest64, (char*)digest, 20);
+  data = apr_pstrcat(r->pool, userAddress, issuer, NULL);
+  hmac(secret->data, secret->len, data, strlen(data), &digest);
+  digest64 = apr_palloc(r->pool, apr_base64_encode_len(HMAC_DIGESTSIZE));
+  apr_base64_encode(digest64, (char*)digest, HMAC_DIGESTSIZE);
   return digest64;
 }
 
@@ -114,7 +111,7 @@ Cookie validateCookie(request_rec *r, const buffer_t *secret, const char *szCook
     return NULL;
   }
 
-  char *digest64 = generateSignature(r, secret, addr, iss);
+  char *digest64 = generateHMAC(r, secret, addr, iss);
   ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "Got cookie: email is %s; expected digest is %s; got digest %s",
                 addr, digest64, sig);
 
@@ -133,7 +130,7 @@ Cookie validateCookie(request_rec *r, const buffer_t *secret, const char *szCook
 /** Create a session cookie with a given identity */
 void sendSignedCookie(request_rec *r, const buffer_t *secret, const Cookie cookie)
 {
-  char *digest64 = generateSignature(r, secret, cookie->verifiedEmail, cookie->identityIssuer);
+  char *digest64 = generateHMAC(r, secret, cookie->verifiedEmail, cookie->identityIssuer);
   /* syntax of cookie is identity|signature */
   apr_table_set(r->err_headers_out, "Set-Cookie",
                 apr_psprintf(r->pool, "%s=%s|%s|%s; Path=/",
