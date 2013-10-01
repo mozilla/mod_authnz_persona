@@ -45,13 +45,13 @@ static char *generateHMAC(request_rec *r, const buffer_t *secret,
                           const char *userAddress, const char *issuer)
 {
   char *data;
-  unsigned char digest[APRX_HMAC_DIGESTSIZE];
+  unsigned char digest[HMAC_DIGESTSIZE];
   char *digest64;
 
   data = apr_pstrcat(r->pool, userAddress, issuer, NULL);
-  aprx_hmac(secret->data, secret->len, data, strlen(data), &digest);
-  digest64 = apr_palloc(r->pool, apr_base64_encode_len(APRX_HMAC_DIGESTSIZE));
-  apr_base64_encode(digest64, (char*)digest, APRX_HMAC_DIGESTSIZE);
+  hmac(secret->data, secret->len, data, strlen(data), &digest);
+  digest64 = apr_palloc(r->pool, apr_base64_encode_len(HMAC_DIGESTSIZE));
+  apr_base64_encode(digest64, (char*)digest, HMAC_DIGESTSIZE);
   return digest64;
 }
 
