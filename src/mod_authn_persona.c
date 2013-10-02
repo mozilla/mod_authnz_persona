@@ -148,6 +148,23 @@ static int Auth_persona_check_cookie(request_rec *r)
     apr_table_setn(r->notes, PERSONA_ISSUER_NOTE, cookie->identityIssuer);
     apr_table_setn(r->subprocess_env, "REMOTE_USER", cookie->verifiedEmail);
     ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Valid auth cookie found, passthrough");
+
+    char *script = apr_psprintf(r->pool,
+                                "showError({\"status\": \"failure\",\"reason\": \""
+                                "user '%s' is not authorized\"});\n"
+                                "var loggedInUser = '%s';",
+                                r->user, r->user);
+    size_t rsplen[3];
+    rsplen[0] = sizeof(src_signin_html);
+    rsplen[1] = strlen(script);
+    rsplen[2] = sizeof(PERSONA_END_PAGE);
+    char *rsp = (char*) apr_palloc(r->pool, rsplen[0] + rsplen[1] + rsplen[2]);
+    memcpy(rsp, src_signin_html, rsplen[0]);
+    memcpy(rsp + rsplen[0], script, rsplen[1]);
+    memcpy(rsp + rsplen[0] + rsplen[1], PERSONA_END_PAGE, rsplen[2]);
+    ap_custom_response(r, 401, rsp);
+    ap_custom_response(r, 403, rsp);
+
     return OK;
   }
 
