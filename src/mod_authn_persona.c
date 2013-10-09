@@ -27,6 +27,7 @@
 #include "cookie.h"
 #include "verify.h"
 #include "signin_page.h"
+#include "error_page.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -148,6 +149,8 @@ static int Auth_persona_check_cookie(request_rec *r)
     apr_table_setn(r->notes, PERSONA_ISSUER_NOTE, cookie->identityIssuer);
     apr_table_setn(r->subprocess_env, "REMOTE_USER", cookie->verifiedEmail);
     ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r, ERRTAG "Valid auth cookie found, passthrough");
+    ap_custom_response(r, 401, (const char*) build_error_html);
+    ap_custom_response(r, 403, (const char*) build_error_html);
     return OK;
   }
 

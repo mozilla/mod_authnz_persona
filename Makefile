@@ -25,7 +25,14 @@ $(BUILDDIR)/bin2c: tools/bin2c.c | $(BUILDDIR)
 $(BUILDDIR)/signin_page.h: src/signin.html $(BUILDDIR)/bin2c | $(BUILDDIR) 
 	@$(BUILDDIR)/bin2c $^ > $@
 
-$(BUILDDIR)/.libs/mod_authn_persona.so: $(SRCS) $(HDRS) $(BUILDDIR)/signin_page.h
+$(BUILDDIR)/error.html: src/error.html src/signin.html
+	@cp src/signin.html $@
+	@cat src/error.html >> $@
+
+$(BUILDDIR)/error_page.h: $(BUILDDIR)/error.html $(BUILDDIR)/bin2c | $(BUILDDIR)
+	@$(BUILDDIR)/bin2c $^ > $@
+
+$(BUILDDIR)/.libs/mod_authn_persona.so: $(SRCS) $(HDRS) $(BUILDDIR)/signin_page.h $(BUILDDIR)/error_page.h
 	@cd $(BUILDDIR) && for file in $(SRCS) $(HDRS) ; do ln -sf ../$$file . ; done
 	@cd $(BUILDDIR) && $(APXS_PATH) $(MY_LDFLAGS) $(MY_CFLAGS) -c $(subst src/,,$(SRCS))
 

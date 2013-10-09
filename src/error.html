@@ -1,0 +1,17 @@
+var loggedInUser = null;
+var cookies = document.cookie.split('; ');
+for (var x in cookies) {
+  var cookieData = cookies[x];
+  var name = cookieData.split('=')[0];
+  if (name == 'Persona') {
+    var cookieValue = cookieData.split('=').slice(1).join('=');
+    loggedInUser = cookieValue.split('|')[0];
+    showError({
+      "status": "failure",
+      "reason": "user '" + loggedInUser + "' is not authorized"
+    });
+    break;
+  }
+}
+</script>
+</html>
