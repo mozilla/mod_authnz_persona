@@ -256,9 +256,7 @@ static int Auth_persona_check_auth(request_rec *r)
     }
 
   }
-  ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r ,ERRTAG  "user '%s' is not authorized",r->user);
-  /* forbid by default */
-  return HTTP_FORBIDDEN;
+  return DECLINED;
 }
 
 /* Parse x-www-url-formencoded args */
