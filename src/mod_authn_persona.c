@@ -54,37 +54,6 @@
 /* apache module name */
 module AP_MODULE_DECLARE_DATA authn_persona_module;
 
-/** Given a filename and username, open the file (using normal Apache
- * configuration directory search rules) and search for the given username
- * in it (as a newline-seaparated list) */
-static int user_in_file(request_rec *r, char *username, char *filename)
-{
-  apr_status_t status;
-  char l[MAX_STRING_LEN];
-  ap_configfile_t *f;
-  status = ap_pcfg_openfile(&f, r->pool, filename);
-  if (status != APR_SUCCESS) {
-    ap_log_rerror(APLOG_MARK, APLOG_ERR, status, r,
-                  "Could not open user file: %s", filename);
-    return 0;
-  }
-
-  int found = 0;
-  while (!(ap_cfg_getline(l, MAX_STRING_LEN, f))) {
-    /* Skip # or blank lines. */
-    if ((l[0] == '#') || (!l[0])) {
-      continue;
-    }
-
-    if (!strcmp(username, l)) {
-      found = 1;
-      break;
-    }
-  }
-  ap_cfg_closefile(f);
-  return found;
-}
-
 static int persona_authn_active(request_rec *r) {
   return (strncmp("Persona", ap_auth_type(r), 9) == 0) ? 1 : 0;
 }
@@ -173,12 +142,10 @@ static int Auth_persona_check_cookie(request_rec *r)
  **************************************************/
 static int Auth_persona_check_auth(request_rec *r)
 {
-  char *szUser;
   const apr_array_header_t *reqs_arr=NULL;
   require_line *reqs=NULL;
   register int x;
   const char *szRequireLine;
-  char *szFileName;
   char *szRequire_cmd;
 
   if (!persona_authn_active(r)) {
@@ -207,34 +174,8 @@ static int Auth_persona_check_auth(request_rec *r)
     szRequire_cmd = ap_getword_white(r->pool, &szRequireLine);
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "Require Cmd is '%s'", szRequire_cmd);
 
-    /* if require cmd are valid-user, they are already authenticated than allow and return OK */
-    if (!strcmp("valid-user",szRequire_cmd)) {
-      ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG "Require Cmd valid-user");
-      return OK;
-    }
-    /* check the required user */
-    else if (!strcmp("user",szRequire_cmd)) {
-      szUser = ap_getword_conf(r->pool, &szRequireLine);
-      if (strcmp(r->user, szUser)) {
-        ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r ,ERRTAG  "user '%s' is not the required user '%s'",r->user, szUser);
-        return HTTP_FORBIDDEN;
-      }
-      ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r ,ERRTAG  "user '%s' is authorized",r->user);
-      return OK;
-    }
-    /* check for users in a file */ 
-    else if (!strcmp("userfile",szRequire_cmd)) {
-      szFileName = ap_getword_conf(r->pool, &szRequireLine);
-      if (!user_in_file(r, r->user, szFileName)) {
-        ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r ,ERRTAG  "user '%s' is not in username list at '%s'",r->user,szFileName);
-        return HTTP_FORBIDDEN;
-      } else {
-        return OK;
-      }
-    }
-
     // persona-idp: check host part of user name
-    else if (!strcmp("persona-idp", szRequire_cmd)) {
+    if (!strcmp("persona-idp", szRequire_cmd)) {
       char *reqIdp = ap_getword_conf(r->pool, &szRequireLine);
       const char *issuer = apr_table_get(r->notes, PERSONA_ISSUER_NOTE);
       if (!issuer || strcmp(issuer, reqIdp)) {
