@@ -43,7 +43,7 @@ Configure the module:
        Require valid-user
        # Or, require users with host/IdP example.com:
        # Require persona-idp example.com
-       # Or, require specific users
+       # Or, require specific users (requires mod_authz_user)
        # Require user user@example.com
     </Location>
 
