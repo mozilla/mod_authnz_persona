@@ -65,7 +65,9 @@ static int persona_authn_active(request_rec *r) {
 /**************************************************
  * Authentication phase
  *
- * Pull the cookie from the header and verify it.
+ * - If AuthType != Persona, do nothing
+ * - Handle POSTed assertions ("null" -> logout)
+ * - If we have a cookie, set up user context
  **************************************************/
 static int Auth_persona_check_cookie(request_rec *r)
 {
@@ -159,11 +161,11 @@ static int Auth_persona_check_cookie(request_rec *r)
 #if !AP_MODULE_MAGIC_AT_LEAST(20080403, 1)
 
 /**************************************************
- * Authentication hook for Apache
+ * Authorization phase (Apache 2.2)
  *
- * If the cookie is present, extract it and verify it.
+ * Requires authentication phase to run first.
  *
- * if it is valid, apply per-resource authorization rules.
+ * Handles Require persona-idp directives.
  **************************************************/
 static int Auth_persona_check_auth(request_rec *r)
 {
@@ -217,13 +219,22 @@ static int Auth_persona_check_auth(request_rec *r)
 
 #else
 
-/* authorization check for Apache 2.4+ */
+/**************************************************
+ * Authorization phase (Apache 2.4)
+ *
+ * Handles Require persona-idp directives.
+ *
+ * When this is first called, the authentication context hasn't been setup
+ * yet. Return AUTHZ_DENIED_NO_USER to force it to run, then this will be
+ * called again, with the context setup.
+ **************************************************/
 static authz_status persona_idp_check_authorization(request_rec *r,
                                                     const char *require_args,
                                                     const void *parsed_require_args) {
 
   ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Require persona-idp");
   if (!r->user)
+    // this triggers running authn hook, which we need
     return AUTHZ_DENIED_NO_USER;
 
   char *reqIdp = ap_getword_white(r->pool, &require_args);
