@@ -52,7 +52,7 @@
 #include <assert.h>
 
 /* apache module name */
-module AP_MODULE_DECLARE_DATA authn_persona_module;
+module AP_MODULE_DECLARE_DATA authnz_persona_module;
 
 static int persona_authn_active(request_rec *r) {
   return (strncmp("Persona", ap_auth_type(r), 9) == 0) ? 1 : 0;
@@ -79,7 +79,7 @@ static int Auth_persona_check_cookie(request_rec *r)
 
   // XXX: only test for post - issue #10
 
-  persona_config_t *conf = ap_get_module_config(r->server->module_config, &authn_persona_module);
+  persona_config_t *conf = ap_get_module_config(r->server->module_config, &authnz_persona_module);
   assertion = apr_table_get(r->headers_in, PERSONA_ASSERTION_HEADER);
   if (assertion) {
 
@@ -303,7 +303,7 @@ static void *persona_create_svr_config(apr_pool_t *p, server_rec *s)
 
 const char* persona_server_secret_option(cmd_parms *cmd, void *cfg, const char *arg) {
   server_rec *s = cmd->server;
-  persona_config_t *conf = ap_get_module_config(s->module_config, &authn_persona_module);
+  persona_config_t *conf = ap_get_module_config(s->module_config, &authnz_persona_module);
   conf->secret->len = strlen(arg);
   conf->secret->data = apr_palloc(cmd->pool, conf->secret->len);
   strncpy(conf->secret->data, arg, conf->secret->len);
@@ -320,7 +320,7 @@ static const command_rec Auth_persona_options[] =
 };
 
 /* apache module structure */
-module AP_MODULE_DECLARE_DATA authn_persona_module =
+module AP_MODULE_DECLARE_DATA authnz_persona_module =
 {
   STANDARD20_MODULE_STUFF,
   NULL,                       /* dir config creator */

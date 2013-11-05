@@ -101,7 +101,7 @@ static char *verifyAssertionRemote(request_rec *r, char *assertionText)
   chunk.r = r;
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
-  curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-mod_authn_persona-agent/1.0");
+  curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-mod_authnz_persona-agent/1.0");
 
   CURLcode result = curl_easy_perform(curl);
   if (result != 0) {

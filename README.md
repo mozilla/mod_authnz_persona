@@ -1,4 +1,4 @@
-mod_authn_persona is a module for Apache 2.0 or later that
+mod_authnz_persona is a module for Apache 2.0 or later that
 allows you quickly add Persona Authentication to a site hosted with
 apache.
 
@@ -6,8 +6,8 @@ Installation
 =======================
 
 ```
-git clone https://github.com/lloyd/mod_authn_persona.git
-cd mod_authn_persona
+git clone https://github.com/mozilla/mod_authnz_persona.git
+cd mod_authnz_persona
 make
 sudo make install
 ```
@@ -19,7 +19,7 @@ APXS_PATH variable to your apxs or apxs2 as appropriate)
 
 Configure the module:
 
-    LoadModule authn_persona_module modules/mod_authn_persona.so
+    LoadModule authnz_persona_module modules/mod_authnz_persona.so
 
     <Location />
        AuthType Persona

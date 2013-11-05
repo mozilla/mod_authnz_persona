@@ -5,13 +5,13 @@ endif
 MY_LDFLAGS=-lcurl -lyajl
 # Note that gcc flags are passed through apxs, so preface with -Wc
 MY_CFLAGS=-Wc,-I. -Wc,-Wall -Wc,-g -Wc,-Wno-unused-function
-SRCS=src/mod_authn_persona.c src/cookie.c src/verify.c src/hmac.c
+SRCS=src/mod_authnz_persona.c src/cookie.c src/verify.c src/hmac.c
 HDRS=src/cookie.h src/defines.h src/verify.h src/hmac.h
 BUILDDIR := build
 
 .SUFFIXES: .c .o .la
 
-all:  build/.libs/mod_authn_persona.so
+all:  build/.libs/mod_authnz_persona.so
 
 .PHONY: builddir
 builddir: build
@@ -32,12 +32,12 @@ $(BUILDDIR)/error.html: src/error.html src/signin.html
 $(BUILDDIR)/error_page.h: $(BUILDDIR)/error.html $(BUILDDIR)/bin2c | $(BUILDDIR)
 	@$(BUILDDIR)/bin2c $^ > $@
 
-$(BUILDDIR)/.libs/mod_authn_persona.so: $(SRCS) $(HDRS) $(BUILDDIR)/signin_page.h $(BUILDDIR)/error_page.h
+$(BUILDDIR)/.libs/mod_authnz_persona.so: $(SRCS) $(HDRS) $(BUILDDIR)/signin_page.h $(BUILDDIR)/error_page.h
 	@cd $(BUILDDIR) && for file in $(SRCS) $(HDRS) ; do ln -sf ../$$file . ; done
 	@cd $(BUILDDIR) && $(APXS_PATH) $(MY_LDFLAGS) $(MY_CFLAGS) -c $(subst src/,,$(SRCS))
 
 install: all
-	$(APXS_PATH) -i $(BUILDDIR)/mod_authn_persona.la
+	$(APXS_PATH) -i $(BUILDDIR)/mod_authnz_persona.la
 
 clean:
 	-rm -rf $(BUILDDIR)
