@@ -242,6 +242,12 @@ static authz_status persona_idp_check_authorization(request_rec *r,
   return issuer && !strcmp(issuer, reqIdp) ? AUTHZ_GRANTED : AUTHZ_DENIED;
 }
 
+static const authz_provider authz_persona_idp_provider =
+{
+  &persona_idp_check_authorization,
+  NULL,
+};
+
 #endif
 
 /* Parse x-www-url-formencoded args */
@@ -300,12 +306,6 @@ static int processLogout(request_rec *r)
 /**************************************************
  * register module hooks
  **************************************************/
-
-static const authz_provider authz_persona_idp_provider =
-{
-  &persona_idp_check_authorization,
-  NULL,
-};
 
 static void register_hooks(apr_pool_t *p)
 {
