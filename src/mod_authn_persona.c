@@ -82,6 +82,16 @@ static int Auth_persona_check_cookie(request_rec *r)
   persona_config_t *conf = ap_get_module_config(r->server->module_config, &authn_persona_module);
   assertion = apr_table_get(r->headers_in, PERSONA_ASSERTION_HEADER);
   if (assertion) {
+
+    if (strcmp(r->method, "POST")) {
+      r->status = HTTP_METHOD_NOT_ALLOWED;
+      ap_set_content_type(r, "application/json");
+      const char *error = "{\"status\": \"failure\", \"reason\":"
+                          "\"login must be performed with POST\"}";
+      ap_rwrite(error, strlen(error), r);
+      return DONE;
+    }
+
     VerifyResult res = processAssertion(r, assertion);
 
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG
