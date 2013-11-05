@@ -3,6 +3,12 @@ quickly add Persona authentication to a site hosted with Apache.
 
 # Installation
 
+First, install the dependencies:
+
+* apache 2.0 or later (mostly tested with 2.2 so far)
+* libcurl 7.10.8 or later
+* yajl 2.0 or later
+
 ```
 git clone https://github.com/mozilla/mod_authnz_persona.git
 cd mod_authnz_persona
@@ -30,12 +36,6 @@ Configure the module:
 
 This will cause the module to require Persona authentication for all requests
 to the server.
-
-# Dependencies
-
-* apache 2.0 or later (mostly tested with 2.2 so far)
-* libcurl 7.10.8 or later
-* yajl 2.0 or later
 
 # Features
 
