@@ -5,9 +5,22 @@ quickly add Persona authentication to a site hosted with Apache.
 
 First, install the dependencies:
 
-* apache 2.0 or later (mostly tested with 2.2 so far)
-* libcurl 7.10.8 or later
-* yajl 2.0 or later
+* apache 2.2 or later
+* libcurl 7.10.8 or later (for remote verification)
+* yajl 2.0 or later (for JSON parsing)
+
+On Red Hat-derivative distributions, this might help:
+
+```
+yum install httpd httpd-devel curl-devel cmake
+wget http://fedora.mirror.nexicom.net/linux/development/rawhide/source/SRPMS/y/yajl-2.0.4-3.fc20.src.rpm
+rpmbuild --rebuild yajl-*.src.rpm
+sudo yum install ~/rpmbuild/RPMS/`uname -i`/yajl-*.rpm
+```
+
+(CMake is a build-time yajl dependency.)
+
+Then, clone the source and build:
 
 ```
 git clone https://github.com/mozilla/mod_authnz_persona.git
