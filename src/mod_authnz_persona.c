@@ -199,17 +199,7 @@ static int Auth_persona_check_auth(request_rec *r)
       char *reqIdp = ap_getword_conf(r->pool, &szRequireLine);
       const char *issuer = apr_table_get(r->notes, PERSONA_ISSUER_NOTE);
       if (!issuer || strcmp(issuer, reqIdp)) {
-        char *script = apr_psprintf(r->pool,
-                                    "showError({\"status\": \"failure\",\"reason\": \""
-                                    "user '%s' is not authenticated by IdP '%s' (but by '%s')\"});\n"
-                                    "var loggedInUser = '%s';",
-                                    r->user, reqIdp, (issuer ? issuer : "unknown"), r->user);
-        r->status = HTTP_FORBIDDEN;
-        ap_set_content_type(r, "text/html");
-        ap_rwrite(src_signin_html, sizeof(src_signin_html), r);
-        ap_rwrite(script, strlen(script), r);
-        ap_rwrite(PERSONA_END_PAGE, sizeof(PERSONA_END_PAGE), r);
-        return DONE;
+        return HTTP_FORBIDDEN;
       }
       ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r,
                     ERRTAG "user '%s' is authorized", r->user);
