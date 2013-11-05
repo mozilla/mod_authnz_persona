@@ -92,8 +92,18 @@ static int Auth_persona_check_cookie(request_rec *r)
       return DONE;
     }
 
-    VerifyResult res = processAssertion(r, assertion);
+    if (!strcmp(assertion, "null")) {
+      apr_table_set(r->err_headers_out, "Set-Cookie",
+                    apr_psprintf(r->pool, "%s=; Path=/; Expires=Thu, 01-Jan-1970 00:00:01 GMT",
+                                 PERSONA_COOKIE_NAME));
+      r->status = HTTP_OK;
+      const char *status = "{\"status\": \"okay\"}";
+      ap_set_content_type(r, "application/json");
+      ap_rwrite(status, strlen(status), r);
+      return DONE;
+    }
 
+    VerifyResult res = processAssertion(r, assertion);
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG|APLOG_NOERRNO, 0,r,ERRTAG
                   "Assertion received '%s'", assertion);
 
