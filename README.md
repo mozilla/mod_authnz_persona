@@ -2,7 +2,6 @@ mod_authnz_persona is a module for Apache 2.0 or later that allows you to
 quickly add Persona authentication to a site hosted with Apache.
 
 # Installation
-=======================
 
 ```
 git clone https://github.com/mozilla/mod_authnz_persona.git
@@ -32,8 +31,7 @@ Configure the module:
 This will cause the module to require Persona authentication for all requests
 to the server.
 
-Dependencies
-============
+# Dependencies
 
 * apache 2.0 or later (mostly tested with 2.2 so far)
 * libcurl 7.10.8 or later
@@ -46,7 +44,7 @@ Dependencies
 * **automatic re-auth** - The module is designed to use session cookies and
   automatically re-authenticate.
 
-# How it Works
+# How it works
 
 The module works by intercepting requests bound for protected resources, and
 checking for the presence of a session cookie.
@@ -61,8 +59,7 @@ assertion, and set a short session cookie.
 
 The authentication page will then reload the desired resource.
 
-Further configuration settings
-==============================
+# Further configuration settings
 
 * `AuthPersonaServerSecret`:
   A secret that will be used to sign cookies. Must be set in a server or
