@@ -213,9 +213,11 @@ window.onload = function() {
           var error = response.responseText;
           try {
             // XXX - reqwest should be parsing this for us.
-            error = JSON.parse(response.response).reason;
+            error = JSON.parse(response.response);
           } catch(e) {}
-          alert("failed to sign you in: " + error);
+          processingAssertion = false;
+          showError(error);
+          document.getElementsByTagName('body')[0].className = '';
         },
         headers: {
           "X-Persona-Assertion": assertion
