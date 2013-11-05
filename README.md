@@ -1,5 +1,5 @@
 mod_authnz_persona is a module for Apache 2.0 or later that
-allows you quickly add Persona Authentication to a site hosted with
+allows you to quickly add Persona Authentication to a site hosted with
 apache.
 
 Installation
