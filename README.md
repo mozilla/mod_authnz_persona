@@ -22,7 +22,7 @@ Configure the module:
 
     <Location />
        AuthType Persona
-       Require valid-user # XXX: figure out how this should work
+       Require valid-user
        # Or, require users with host/IdP example.com:
        # Require persona-idp example.com
        # Or, require specific users
