@@ -279,22 +279,15 @@ apr_table_t *parse_args(request_rec *r, char *args) {
 
 static int process_logout(request_rec *r) {
 
+  const char *returnto = NULL;
   sendResetCookie(r);
   if (r->args) {
-
-    if (strlen(r->args) > 16384) {
+    if (strlen(r->args) > 16384)
       return HTTP_REQUEST_URI_TOO_LARGE;
-    }
-
-    apr_table_t *vars = parse_args(r, r->args);
-    const char *returnto = apr_table_get(vars, "returnto");
-    if (returnto) {
-      apr_table_set(r->headers_out, "Location", returnto);
-      return HTTP_TEMPORARY_REDIRECT;
-    }
+    returnto = apr_table_get(parse_args(r, r->args), "returnto");
   }
 
-  apr_table_set(r->headers_out, "Location", "/");
+  apr_table_set(r->headers_out, "Location", returnto == NULL ? "/" : returnto);
   return HTTP_TEMPORARY_REDIRECT;
 
 }
