@@ -40,14 +40,13 @@
 
 /** Generates a HMAC with the given inputs, returning a Base64-encoded
  * signature value. */
-static char *generateHMAC(request_rec *r, const buffer_t *secret,
-                          const char *userAddress, const char *issuer)
+static char *generateHMAC(request_rec *r, const buffer_t *secret, const Cookie cookie)
 {
   char *data;
   unsigned char digest[HMAC_DIGESTSIZE];
   char *digest64;
 
-  data = apr_pstrcat(r->pool, userAddress, issuer, NULL);
+  data = apr_pstrcat(r->pool, cookie->verifiedEmail, cookie->identityIssuer, NULL);
   hmac(secret->data, secret->len, data, strlen(data), &digest);
   digest64 = apr_palloc(r->pool, apr_base64_encode_len(HMAC_DIGESTSIZE));
   apr_base64_encode(digest64, (char*)digest, HMAC_DIGESTSIZE);
@@ -110,7 +109,11 @@ Cookie validateCookie(request_rec *r, const buffer_t *secret, const char *szCook
     return NULL;
   }
 
-  char *digest64 = generateHMAC(r, secret, addr, iss);
+  Cookie c = apr_pcalloc(r->pool, sizeof(struct _Cookie));
+  c->verifiedEmail = addr;
+  c->identityIssuer = iss;
+
+  char *digest64 = generateHMAC(r, secret, c);
   ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "Got cookie: email is %s; expected digest is %s; got digest %s",
                 addr, digest64, sig);
 
@@ -120,16 +123,13 @@ Cookie validateCookie(request_rec *r, const buffer_t *secret, const char *szCook
     return NULL;
   }
 
-  Cookie c = apr_pcalloc(r->pool, sizeof(struct _Cookie));
-  c->verifiedEmail = addr;
-  c->identityIssuer = iss;
   return c;
 }
 
 /** Create a session cookie with a given identity */
 void sendSignedCookie(request_rec *r, const buffer_t *secret, const Cookie cookie)
 {
-  char *digest64 = generateHMAC(r, secret, cookie->verifiedEmail, cookie->identityIssuer);
+  char *digest64 = generateHMAC(r, secret, cookie);
   /* syntax of cookie is identity|signature */
   apr_table_set(r->err_headers_out, "Set-Cookie",
                 apr_psprintf(r->pool, "%s=%s|%s|%s; Path=/",
