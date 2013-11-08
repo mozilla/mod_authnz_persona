@@ -118,6 +118,7 @@ static int Auth_persona_check_cookie(request_rec *r)
       Cookie cookie = apr_pcalloc(r->pool, sizeof(struct _Cookie));
       cookie->verifiedEmail = res->verifiedEmail;
       cookie->identityIssuer = res->identityIssuer;
+      cookie->created = apr_time_sec(r->request_time);
       sendSignedCookie(r, conf->secret, cookie);
       return DONE;
     } else {

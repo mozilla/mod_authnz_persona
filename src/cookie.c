@@ -46,7 +46,9 @@ static char *generateHMAC(request_rec *r, const buffer_t *secret, const Cookie c
   unsigned char digest[HMAC_DIGESTSIZE];
   char *digest64;
 
-  data = apr_pstrcat(r->pool, cookie->verifiedEmail, cookie->identityIssuer, NULL);
+  char timestr[12];
+  snprintf(timestr, 12, "%" APR_TIME_T_FMT, cookie->created);
+  data = apr_pstrcat(r->pool, cookie->verifiedEmail, cookie->identityIssuer, timestr, NULL);
   hmac(secret->data, secret->len, data, strlen(data), &digest);
   digest64 = apr_palloc(r->pool, apr_base64_encode_len(HMAC_DIGESTSIZE));
   apr_base64_encode(digest64, (char*)digest, HMAC_DIGESTSIZE);
@@ -97,21 +99,29 @@ Cookie validateCookie(request_rec *r, const buffer_t *secret, const char *szCook
   /* split at | */
   char *iss = NULL;
   char *sig = NULL;
+  char *crea = NULL;
   char *addr = apr_strtok((char *) szCookieValue, "|", &iss);
   if (!addr) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "malformed Persona cookie, can't extract email");
     return NULL;
   }
 
-  iss = apr_strtok((char *) iss, "|", &sig);
+  iss = apr_strtok((char *) iss, "|", &crea);
   if (!iss) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "malformed Persona cookie, can't extract issuer");
+    return NULL;
+  }
+
+  crea = apr_strtok((char *) crea, "|", &sig);
+  if (!crea) {
+    ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "malformed Persona cookie, can't extract time");
     return NULL;
   }
 
   Cookie c = apr_pcalloc(r->pool, sizeof(struct _Cookie));
   c->verifiedEmail = addr;
   c->identityIssuer = iss;
+  c->created = strtol(crea, NULL, 10);
 
   char *digest64 = generateHMAC(r, secret, c);
   ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "Got cookie: email is %s; expected digest is %s; got digest %s",
@@ -130,9 +140,9 @@ Cookie validateCookie(request_rec *r, const buffer_t *secret, const char *szCook
 void sendSignedCookie(request_rec *r, const buffer_t *secret, const Cookie cookie)
 {
   char *digest64 = generateHMAC(r, secret, cookie);
-  /* syntax of cookie is identity|issuer|signature */
+  /* syntax of cookie is identity|issuer|timestamp|signature */
   apr_table_set(r->err_headers_out, "Set-Cookie",
-                apr_psprintf(r->pool, "%s=%s|%s|%s; Path=/",
+                apr_psprintf(r->pool, "%s=%s|%s|%" APR_TIME_T_FMT "|%s; Path=/",
                              PERSONA_COOKIE_NAME, cookie->verifiedEmail,
-                             cookie->identityIssuer, digest64));
+                             cookie->identityIssuer, cookie->created, digest64));
 }
