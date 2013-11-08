@@ -22,7 +22,6 @@
 
 #include <httpd.h>
 #include "defines.h"
-#include "hmac.h"
 
 typedef struct _Cookie {
   const char *verifiedEmail; // email that was verified

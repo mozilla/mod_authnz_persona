@@ -25,19 +25,18 @@
 
 #include <stdio.h>
 #include <string.h>
-#define APR_WANT_STRFUNC
 
-#include <apr_want.h>
-#include <apr_strings.h>
 #include <apr_base64.h>
+#include <apr_pools.h>
+#include <apr_strings.h>
+#include <apr_tables.h>
 
 #include <httpd.h>
-#include <http_config.h>
-#include <http_core.h>
 #include <http_log.h>
 
 #include "cookie.h"
 #include "defines.h"
+#include "hmac.h"
 
 /** Generates a HMAC with the given inputs, returning a Base64-encoded
  * signature value. */

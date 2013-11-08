@@ -23,28 +23,21 @@
  * public domain.
  */
 
-#include "defines.h"
-#include "cookie.h"
-#include "verify.h"
-
-#include <stdio.h>
+#include <stddef.h>
 #include <string.h>
-#define APR_WANT_STRFUNC
-#include "apr_want.h"
+
 #include "apr_strings.h"
-#include "apr_uuid.h"
-#include "apr_tables.h"
+#include "apr_pools.h"
 
 #include "httpd.h"
-#include "http_config.h"
-#include "http_core.h"
 #include "http_log.h"
-#include "http_protocol.h"
-#include "http_request.h"   /* for ap_hook_(check_user_id | auth_checker)*/
-#include "apr_base64.h"
+
 #include <yajl/yajl_tree.h>
 #include <curl/curl.h>
 #include <curl/easy.h>
+
+#include "defines.h"
+#include "verify.h"
 
 /* Helper struct for CURL response */
 struct MemoryStruct {

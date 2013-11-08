@@ -26,24 +26,7 @@
 #ifndef __VERIFY_H__
 #define __VERIFY_H__
 
-#include "defines.h"
-#include "cookie.h"
-
-#include <stdio.h>
-#include <string.h>
-#define APR_WANT_STRFUNC
-#include "apr_want.h"
-#include "apr_strings.h"
-#include "apr_uuid.h"
-#include "apr_tables.h"
-
 #include "httpd.h"
-#include "http_config.h"
-#include "http_core.h"
-#include "http_log.h"
-#include "http_protocol.h"
-#include "http_request.h"   /* for ap_hook_(check_user_id | auth_checker)*/
-#include "apr_base64.h"
 
 typedef struct _VerifyResult {
   const char * verifiedEmail; // email that was verified

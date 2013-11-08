@@ -23,20 +23,16 @@
  * public domain.
  */
 
-#include "defines.h"
-#include "cookie.h"
-#include "verify.h"
-#include "signin_page.h"
-#include "error_page.h"
-
-#include <stdio.h>
+#include <assert.h>
 #include <string.h>
-#define APR_WANT_STRFUNC
-#include <apr_want.h>
-#include <apr_strings.h>
-#include <apr_uuid.h>
-#include <apr_tables.h>
+
+#include <apr_errno.h>
+#include <apr_general.h>
+#include <apr_hooks.h>
+#include <apr_pools.h>
 #include <apr_random.h>
+#include <apr_strings.h>
+#include <apr_tables.h>
 
 #include <httpd.h>
 #include <http_config.h>
@@ -44,16 +40,18 @@
 #include <http_log.h>
 #include <http_protocol.h>
 #include <http_request.h>   /* for ap_hook_(check_user_id | auth_checker)*/
-#include <apr_base64.h>
+
+#include <ap_config.h>
+#include <ap_mmn.h>
 #if AP_MODULE_MAGIC_AT_LEAST(20080403, 1)
-#include "ap_provider.h"
 #include "mod_auth.h"
 #endif
 
-#include <yajl/yajl_tree.h>
-#include <curl/curl.h>
-#include <curl/easy.h>
-#include <assert.h>
+#include "defines.h"
+#include "cookie.h"
+#include "verify.h"
+#include "signin_page.h"
+#include "error_page.h"
 
 /* apache module name */
 module AP_MODULE_DECLARE_DATA authnz_persona_module;
