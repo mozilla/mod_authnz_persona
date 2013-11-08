@@ -97,9 +97,7 @@ static int Auth_persona_check_cookie(request_rec *r)
     }
 
     if (!strcmp(assertion, "null")) {
-      apr_table_set(r->err_headers_out, "Set-Cookie",
-                    apr_psprintf(r->pool, "%s=; Path=/; Expires=Thu, 01-Jan-1970 00:00:01 GMT",
-                                 PERSONA_COOKIE_NAME));
+      sendResetCookie(r);
       r->status = HTTP_OK;
       const char *status = "{\"status\": \"okay\"}";
       ap_set_content_type(r, "application/json");
@@ -282,10 +280,7 @@ apr_table_t *parseArgs(request_rec *r, char *argStr)
 
 static int processLogout(request_rec *r)
 {
-  apr_table_set(r->err_headers_out, "Set-Cookie",
-                apr_psprintf(r->pool, "%s=; Path=/; Expires=Thu, 01-Jan-1970 00:00:01 GMT",
-                             PERSONA_COOKIE_NAME));
-
+  sendResetCookie(r);
   if (r->args) {
     if ( strlen(r->args) > 16384 ) {
       return HTTP_REQUEST_URI_TOO_LARGE ;

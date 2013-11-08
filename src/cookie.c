@@ -146,3 +146,9 @@ void sendSignedCookie(request_rec *r, const buffer_t *secret, const Cookie cooki
                              PERSONA_COOKIE_NAME, cookie->verifiedEmail,
                              cookie->identityIssuer, cookie->created, digest64));
 }
+
+void sendResetCookie(request_rec *r) {
+  apr_table_set(r->err_headers_out, "Set-Cookie",
+                apr_psprintf(r->pool, "%s=; Path=/; Expires=Thu, 01-Jan-1970 00:00:01 GMT",
+                PERSONA_COOKIE_NAME));
+}

@@ -39,4 +39,7 @@ Cookie validateCookie(request_rec *r, const buffer_t *secret, const char *szCook
 /** Create a session cookie with a given identity */
 void sendSignedCookie(request_rec *r, const buffer_t *secret, const Cookie cookie);
 
+/* Send an empty cookie, to reset the session */
+void sendResetCookie(request_rec *r);
+
 #endif
