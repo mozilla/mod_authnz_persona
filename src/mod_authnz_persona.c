@@ -60,6 +60,51 @@ static int persona_authn_active(request_rec *r) {
   return (strncmp("Persona", ap_auth_type(r), 9) == 0) ? 1 : 0;
 }
 
+/* Parse x-www-url-formencoded args */
+apr_table_t *parse_args(request_rec *r, char *args) {
+
+  char* pair;
+  char* last = NULL;
+  char* eq;
+  char *delim = "&";
+
+  apr_table_t *vars = apr_table_make(r->pool, 10);
+  for (pair = apr_strtok(r->args, delim, &last); pair; pair = apr_strtok(NULL, delim, &last)) {
+
+    for (eq = pair; *eq; ++eq)
+      if (*eq == '+')
+        *eq = ' ';
+
+    ap_unescape_url(pair);
+    eq = strchr(pair, '=');
+    if (eq) {
+      *eq++ = 0;
+      apr_table_merge(vars, pair, eq);
+    } else {
+      apr_table_merge(vars, pair, "");
+    }
+
+  }
+
+  return vars;
+
+}
+
+static int process_logout(request_rec *r) {
+
+  const char *returnto = NULL;
+  sendResetCookie(r);
+  if (r->args) {
+    if (strlen(r->args) > 16384)
+      return HTTP_REQUEST_URI_TOO_LARGE;
+    returnto = apr_table_get(parse_args(r, r->args), "returnto");
+  }
+
+  apr_table_set(r->headers_out, "Location", returnto == NULL ? "/" : returnto);
+  return HTTP_TEMPORARY_REDIRECT;
+
+}
+
 /**************************************************
  * Authentication phase
  *
@@ -246,51 +291,6 @@ static const authz_provider authz_persona_idp_provider =
 };
 
 #endif
-
-/* Parse x-www-url-formencoded args */
-apr_table_t *parse_args(request_rec *r, char *args) {
-
-  char* pair;
-  char* last = NULL;
-  char* eq;
-  char *delim = "&";
-
-  apr_table_t *vars = apr_table_make(r->pool, 10);
-  for (pair = apr_strtok(r->args, delim, &last); pair; pair = apr_strtok(NULL, delim, &last)) {
-
-    for (eq = pair; *eq; ++eq)
-      if (*eq == '+')
-        *eq = ' ';
-
-    ap_unescape_url(pair);
-    eq = strchr(pair, '=');
-    if (eq) {
-      *eq++ = 0;
-      apr_table_merge(vars, pair, eq);
-    } else {
-      apr_table_merge(vars, pair, "");
-    }
-
-  }
-
-  return vars;
-
-}
-
-static int process_logout(request_rec *r) {
-
-  const char *returnto = NULL;
-  sendResetCookie(r);
-  if (r->args) {
-    if (strlen(r->args) > 16384)
-      return HTTP_REQUEST_URI_TOO_LARGE;
-    returnto = apr_table_get(parse_args(r, r->args), "returnto");
-  }
-
-  apr_table_set(r->headers_out, "Location", returnto == NULL ? "/" : returnto);
-  return HTTP_TEMPORARY_REDIRECT;
-
-}
 
 /**************************************************
  * register module hooks
