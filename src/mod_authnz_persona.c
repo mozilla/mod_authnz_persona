@@ -248,53 +248,55 @@ static const authz_provider authz_persona_idp_provider =
 #endif
 
 /* Parse x-www-url-formencoded args */
-apr_table_t *parseArgs(request_rec *r, char *argStr)
-{
-  char* pair ;
-  char* last = NULL ;
-  char* eq ;
+apr_table_t *parse_args(request_rec *r, char *args) {
 
-  apr_table_t *vars = apr_table_make(r->pool, 10) ;
+  char* pair;
+  char* last = NULL;
+  char* eq;
   char *delim = "&";
 
-  for ( pair = apr_strtok(r->args, delim, &last) ;
-        pair ;
-        pair = apr_strtok(NULL, delim, &last) )
-  {
-    for (eq = pair ; *eq ; ++eq)
-      if ( *eq == '+' )
-        *eq = ' ' ;
+  apr_table_t *vars = apr_table_make(r->pool, 10);
+  for (pair = apr_strtok(r->args, delim, &last); pair; pair = apr_strtok(NULL, delim, &last)) {
 
-    ap_unescape_url(pair) ;
-    eq = strchr(pair, '=') ;
+    for (eq = pair; *eq; ++eq)
+      if (*eq == '+')
+        *eq = ' ';
 
-    if ( eq ) {
-      *eq++ = 0 ;
-      apr_table_merge(vars, pair, eq) ;
+    ap_unescape_url(pair);
+    eq = strchr(pair, '=');
+    if (eq) {
+      *eq++ = 0;
+      apr_table_merge(vars, pair, eq);
     } else {
-      apr_table_merge(vars, pair, "") ;
+      apr_table_merge(vars, pair, "");
     }
+
   }
+
   return vars;
+
 }
 
-static int processLogout(request_rec *r)
-{
+static int process_logout(request_rec *r) {
+
   sendResetCookie(r);
   if (r->args) {
-    if ( strlen(r->args) > 16384 ) {
-      return HTTP_REQUEST_URI_TOO_LARGE ;
+
+    if (strlen(r->args) > 16384) {
+      return HTTP_REQUEST_URI_TOO_LARGE;
     }
 
-    apr_table_t *vars = parseArgs(r, r->args);
-    const char *returnto = apr_table_get(vars, "returnto") ;
+    apr_table_t *vars = parse_args(r, r->args);
+    const char *returnto = apr_table_get(vars, "returnto");
     if (returnto) {
-      apr_table_set(r->headers_out,"Location", returnto);
+      apr_table_set(r->headers_out, "Location", returnto);
       return HTTP_TEMPORARY_REDIRECT;
     }
   }
-  apr_table_set(r->headers_out,"Location", "/");
+
+  apr_table_set(r->headers_out, "Location", "/");
   return HTTP_TEMPORARY_REDIRECT;
+
 }
 
 /**************************************************
