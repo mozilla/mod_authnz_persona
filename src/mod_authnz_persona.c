@@ -101,7 +101,7 @@ static int process_logout(request_rec *r) {
   }
 
   apr_table_set(r->headers_out, "Location", returnto == NULL ? "/" : returnto);
-  return HTTP_TEMPORARY_REDIRECT;
+  return HTTP_SEE_OTHER;
 
 }
 
