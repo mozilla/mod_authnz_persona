@@ -85,9 +85,9 @@ The authentication page will then reload the desired resource.
   A path that can be linked to for logout. Relative to the server root; must
   start with a `/` to match. If this is enabled, users can be logged out by
   linking to the URL set up by this option. After logout, the user will be
-  redirected to the URL given by the `returnto` query string argument if
+  redirected to the full URL passed in the `returnto` query string argument, if
   available; if not, the user will be redirected to `/` (which can be
-  confusing given due to automatic re-authentication).
+  confusing, due to automatic re-authentication).
 
 * `Require persona-idp`:
   Only allow users with email addresses backed by the given Identity Provider.
