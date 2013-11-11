@@ -176,6 +176,11 @@ static int Auth_persona_check_cookie(request_rec *r)
     }
   }
 
+  // handle logout via LogoutPath hit before letting valid cookies through
+  if (conf->logout_path->len && !strncmp(r->uri, conf->logout_path->data, conf->logout_path->len)) {
+    return process_logout(r);
+  }
+
   // if there's a valid cookie, allow the user through
   szCookieValue = extractCookie(r, conf->secret, PERSONA_COOKIE_NAME);
 
@@ -321,11 +326,17 @@ static void *persona_create_svr_config(apr_pool_t *p, server_rec *s)
     apr_generate_random_bytes(randbuf, RAND_BYTES_AT_A_TIME);
     apr_random_add_entropy(prng, randbuf, RAND_BYTES_AT_A_TIME);
   }
+
   char *secret = apr_palloc(p, PERSONA_SECRET_SIZE);
   apr_random_secure_bytes(prng, secret, PERSONA_SECRET_SIZE);
   conf->secret = apr_palloc(p, sizeof(buffer_t));
   conf->secret->len = PERSONA_SECRET_SIZE;
   conf->secret->data = secret;
+
+  conf->logout_path = apr_palloc(p, sizeof(buffer_t));
+  conf->logout_path->len = 0;
+  conf->logout_path->data = NULL;
+
   return conf;
 }
 
@@ -338,11 +349,24 @@ const char* persona_server_secret_option(cmd_parms *cmd, void *cfg, const char *
   return NULL;
 }
 
+const char* persona_logout_path(cmd_parms *cmd, void *cfg, const char *arg) {
+  server_rec *s = cmd->server;
+  persona_config_t *conf = ap_get_module_config(s->module_config, &authnz_persona_module);
+  conf->logout_path->len = strlen(arg);
+  conf->logout_path->data = apr_palloc(cmd->pool, conf->logout_path->len);
+  strncpy(conf->logout_path->data, arg, conf->logout_path->len);
+  return NULL;
+}
+
 static const command_rec Auth_persona_options[] =
 {
   AP_INIT_TAKE1(
     "AuthPersonaServerSecret", persona_server_secret_option,
     NULL, RSRC_CONF, "Server secret to use for cookie signing"
+  ),
+  AP_INIT_TAKE1(
+    "AuthPersonaLogoutPath", persona_logout_path,
+    NULL, RSRC_CONF, "Path used to trigger logout"
   ),
   {NULL}
 };

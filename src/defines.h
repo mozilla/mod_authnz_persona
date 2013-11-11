@@ -20,6 +20,7 @@ typedef struct buffer {
 
 typedef struct persona_config {
   buffer_t *secret;
+  buffer_t *logout_path;
 } persona_config_t;
 
 #endif
