@@ -126,8 +126,6 @@ static int Auth_persona_check_cookie(request_rec *r)
   // We'll trade you a valid assertion for a session cookie!
   // this is a programmatic XHR request.
 
-  // XXX: only test for post - issue #10
-
   persona_config_t *conf = ap_get_module_config(r->server->module_config, &authnz_persona_module);
   assertion = apr_table_get(r->headers_in, PERSONA_ASSERTION_HEADER);
   if (assertion) {
