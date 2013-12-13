@@ -53,20 +53,20 @@ static const char * jsonErrorResponse = "{\"status\":\"failure\", \"reason\": \"
 /** Callback function for streaming CURL response */
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
-  size_t realsize = size * nmemb;
+  size_t data_size = size * nmemb;
   struct MemoryStruct *mem = (struct MemoryStruct *)userp;
 
-  if (mem->used + realsize >= mem->allocated) {
-    mem->allocated = mem->used + realsize + 256;
-    void *tmp = apr_palloc(mem->r->pool, mem->used + realsize + 256);
+  if (mem->used + data_size >= mem->allocated) {
+    mem->allocated = mem->used + data_size + 256;
+    void *tmp = apr_palloc(mem->r->pool, mem->used + data_size + 256);
     memcpy(tmp, mem->memory, mem->used);
     mem->memory = tmp;
   }
 
-  memcpy(&(mem->memory[mem->used]), contents, realsize);
-  mem->used += realsize;
+  memcpy(&(mem->memory[mem->used]), contents, data_size);
+  mem->used += data_size;
   mem->memory[mem->used] = 0;
-  return realsize;
+  return data_size;
 }
 
 /* Pass the assertion to the verification service defined in the config,
