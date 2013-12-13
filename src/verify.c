@@ -42,7 +42,7 @@
 /* Helper struct for CURL response */
 struct MemoryStruct {
   char *memory;
-  size_t size;
+  size_t used;
   size_t realsize;
   request_rec *r;
 };
@@ -56,16 +56,16 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
   size_t realsize = size * nmemb;
   struct MemoryStruct *mem = (struct MemoryStruct *)userp;
 
-  if (mem->size + realsize >= mem->realsize) {
-    mem->realsize = mem->size + realsize + 256;
-    void *tmp = apr_palloc(mem->r->pool, mem->size + realsize + 256);
-    memcpy(tmp, mem->memory, mem->size);
+  if (mem->used + realsize >= mem->realsize) {
+    mem->realsize = mem->used + realsize + 256;
+    void *tmp = apr_palloc(mem->r->pool, mem->used + realsize + 256);
+    memcpy(tmp, mem->memory, mem->used);
     mem->memory = tmp;
   }
 
-  memcpy(&(mem->memory[mem->size]), contents, realsize);
-  mem->size += realsize;
-  mem->memory[mem->size] = 0;
+  memcpy(&(mem->memory[mem->used]), contents, realsize);
+  mem->used += realsize;
+  mem->memory[mem->used] = 0;
   return realsize;
 }
 
@@ -89,7 +89,7 @@ static char *verifyAssertionRemote(request_rec *r, char *assertionText)
 
   struct MemoryStruct chunk;
   chunk.memory = apr_pcalloc(r->pool, 1024);
-  chunk.size = 0;
+  chunk.used = 0;
   chunk.realsize = 1024;
   chunk.r = r;
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
