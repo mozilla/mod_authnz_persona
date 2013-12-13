@@ -58,7 +58,7 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
 
   if (mem->used + data_size >= mem->allocated) {
     mem->allocated = mem->used + data_size + 256;
-    void *tmp = apr_palloc(mem->r->pool, mem->used + data_size + 256);
+    void *tmp = apr_palloc(mem->r->pool, mem->allocated);
     memcpy(tmp, mem->memory, mem->used);
     mem->memory = tmp;
   }
