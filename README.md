@@ -9,8 +9,9 @@ First, install the dependencies:
 * libcurl 7.10.8 or later (for remote verification)
 * yajl 2.0 or later (for JSON parsing)
 
-On Red Hat-derivative distributions, this might help:
+## [Red Hat Enterprise Linux Derivative distributions](https://en.wikipedia.org/wiki/Red_Hat_Enterprise_Linux_derivatives)
 
+Build yajl 2.0
 ```
 yum install httpd httpd-devel curl-devel cmake
 wget http://fedora.mirror.nexicom.net/linux/development/rawhide/source/SRPMS/y/yajl-2.0.4-3.fc20.src.rpm
@@ -18,10 +19,7 @@ rpmbuild --rebuild yajl-*.src.rpm
 sudo yum install ~/rpmbuild/RPMS/`uname -i`/yajl-*.rpm
 ```
 
-(CMake is a build-time yajl dependency.)
-
-Then, clone the source and build:
-
+Clone the source and build
 ```
 git clone https://github.com/mozilla/mod_authnz_persona.git
 cd mod_authnz_persona
@@ -29,8 +27,24 @@ make
 sudo make install
 ```
 
-(This assumes apxs is behaving properly on your system; set the
-APXS_PATH variable to your apxs or apxs2 as appropriate.)
+## Debian/Ubuntu Derivative distributions
+
+Install yajl 2.0
+```
+wget https://launchpad.net/ubuntu/+source/yajl/2.0.4-2/+build/3450133/+files/libyajl2_2.0.4-2_amd64.deb
+wget https://launchpad.net/ubuntu/+source/yajl/2.0.4-2/+build/3450133/+files/libyajl-dev_2.0.4-2_amd64.deb
+sudo dpkg -i libyajl2_2.0.4-2_amd64.deb libyajl-dev_2.0.4-2_amd64.deb
+```
+
+Clone the source and build
+
+```
+sudo apt-get install make git gcc apache2 apache2-threaded-dev libcurl4-gnutls-dev
+git clone https://github.com/mozilla/mod_authnz_persona.git
+cd mod_authnz_persona
+APXS_PATH=/usr/bin/apxs2 make
+sudo APXS_PATH=/usr/bin/apxs2 make install
+```
 
 # Configuration
 
