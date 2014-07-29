@@ -24,7 +24,7 @@
 static void mxor(void *, const void *, apr_size_t);
 
 /* Implements an HMAC with SHA1 the correct, safe way : http://en.wikipedia.org/wiki/Hash-based_message_authentication_code
- * 
+ *
  * Basic idea is to split the key in 2 parts, then hash the data twice, with 2 separate pieces of the key appended
  *
  * HMAC (K,m) = H((K+opad) | H((K+ipad) | m))
