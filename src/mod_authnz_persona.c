@@ -121,7 +121,7 @@ static int Auth_persona_check_cookie(request_rec *r)
   if (!persona_authn_active(r)) {
     return DECLINED;
   }
-  ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r, ERRTAG "Auth_persona_check_cookie");
+  ap_log_rerror(APLOG_MARK, APLOG_DEBUG|APLOG_NOERRNO, 0, r, ERRTAG "Auth_persona_check_cookie");
 
   // We'll trade you a valid assertion for a session cookie!
   // this is a programmatic XHR request.
