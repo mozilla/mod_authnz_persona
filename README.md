@@ -79,8 +79,10 @@ checking for the presence of a session cookie.
 If the cookie is not found, the user agent is served an HTML document that
 presents a Persona login page.
 
-Note that the server's hostname (`hostname -f` or equivalent) must match the
-domain portion of the URL in order for verification to succeed.
+Note that the authentication request to the Persona server includes the 
+server's hostname and thus either `hostname -f` or the value of `ServerName`
+must match the domain portion of the URL to avoid failing with an “audience
+mismatch: domain mismatch” error.
 
 Upon successful authentication with Persona, this page will send a request to
 the server with a Persona assertion in an HTTP header. The module, upon
